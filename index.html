@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>台鐵三班制加班時數計算器</title>
+  <meta name="description" content="本機 Excel 班表核對與加班時數試算工具">
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="styles.css">
+  <script src="vendor/xlsx.full.min.js" defer></script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="./" aria-label="計算器首頁"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><rect x="7" y="3" width="18" height="22" rx="5"/><path d="M7 15h18M16 4v11M10 25l-3 5m15-5 3 5M9 28h14"/><circle cx="11" cy="20" r="1"/><circle cx="21" cy="20" r="1"/></svg><span>三班制時數工作台</span></a><div class="topbar-actions"><span class="local-tag">本機處理 · 資料不外傳</span><button id="theme-toggle" type="button">切換暗色</button></div></header>
+  <main>
+    <div class="page-title"><div><h1>台鐵三班制加班時數計算器</h1><p>從每月班表到逐日依據，讓每一筆時數都能核對。</p></div><span class="version">MVP 0.1 · 規則草稿</span></div>
+    <p class="notice">本工具依提供規則試算，只計時數。請確認所選區段適用三班制；未知班別與未確認規則須總務覆核。</p>
+    <div class="workspace">
+      <aside class="setup" aria-label="匯入與設定">
+        <h2>匯入班表</h2>
+        <label for="month">結算年月</label><input id="month" type="month" value="2026-10" required>
+        <label for="file">本月 Excel <span class="hint">.xlsx，最多 20MB</span></label><input id="file" type="file" accept=".xlsx">
+        <label for="sheet">本月工作表</label><select id="sheet" disabled><option>請先選擇檔案</option></select>
+        <div id="block-field" hidden><label for="block">本月班表區段</label><select id="block"></select><p class="help">本版支援上方第一區三班制。下方常日班／替班人員尚未提供算法，不列入總表。</p></div>
+        <p class="help">支援姓名表頭，以及「年月／星期／日期」分區班表。不同班制請分區核對，不需先重排 Excel。</p>
+        <div class="secondary-actions"><button id="template" type="button" class="quiet">下載空白範本</button><button id="sample" type="button" class="quiet">載入合成範例</button></div>
+        <h2>國定本日</h2>
+        <label for="holidays">本月日期 <span class="hint">一行一日，YYYY-MM-DD</span></label><textarea id="holidays" rows="3">2026-10-10
+2026-10-25</textarea>
+        <p id="holiday-source" class="help">來自規則草稿：10/10、10/25，非政府補假日。</p>
+        <label class="check"><input id="confirmed" type="checkbox"><span>我已核對本月國定本日清單<br><small>留空代表本月無國定日，也須確認。</small></span></label>
+        <details class="previous"><summary>前月資料（公休轉移時使用）</summary>
+          <p class="help">只尋找最近普通日班。跨月候選仍須人工決定歸屬，不自動入帳。</p>
+          <label for="prev-file">前月 Excel</label><input id="prev-file" type="file" accept=".xlsx">
+          <label for="prev-sheet">前月工作表</label><select id="prev-sheet" disabled><option>尚未提供</option></select>
+          <div id="prev-block-field" hidden><label for="prev-block">前月班表區段</label><select id="prev-block"></select></div>
+          <label for="prev-holidays">前月國定本日（YYYY-MM-DD）</label><textarea id="prev-holidays" rows="3"></textarea>
+          <label class="check"><input id="prev-confirmed" type="checkbox"><span>已核對前月日期清單</span></label>
+          <button id="clear-prev" class="quiet" type="button">移除前月資料</button>
+        </details>
+        <button id="calculate" class="primary" type="button" disabled>辨識班表並計算</button>
+        <p id="file-state" class="help" role="status">尚未匯入班表。</p>
+      </aside>
+      <section class="results" aria-labelledby="results-title">
+        <div class="section-head"><div><h2 id="results-title">全體員工統計</h2><p id="result-caption">匯入後可查看各級距時數與待核對事項。</p></div><button id="export" type="button" disabled>匯出 Excel</button></div>
+        <div id="message" role="status" aria-live="polite"></div>
+        <div id="empty" class="empty"><svg viewBox="0 0 64 64" width="64" height="64" aria-hidden="true"><rect x="10" y="8" width="44" height="48" rx="3"/><path d="M10 22h44M10 34h44M10 46h44M26 22v34M40 22v34"/></svg><h3>先帶入這個月的班表</h3><p>選擇 Excel 與工作表，確認國定本日，<br>即可查看全員統計及每一天的計算依據。</p><p class="help">還沒有正式檔案？使用「載入合成範例」演練流程。</p></div>
+        <div id="report" hidden>
+          <div id="report-state" class="report-state"></div>
+          <div class="table-scroll" tabindex="0" role="region" aria-label="全員加班時數，可水平捲動"><table id="summary"><caption class="sr-only">全員各級距時數，單位小時</caption><thead><tr><th scope="col">員工</th><th scope="col">普通延長</th><th scope="col">休息日<br>0–2H</th><th scope="col">休息日<br>3–8H</th><th scope="col">休息日<br>9–12H</th><th scope="col">國定出勤<br>0–8H</th><th scope="col">國定<br>9–10H</th><th scope="col">國定<br>11–12H</th><th scope="col">國定例／休<br>0–8H</th><th scope="col">總時數</th><th scope="col">狀態</th></tr></thead><tbody></tbody><tfoot></tfoot></table></div>
+          <p class="help">單位：小時（H）。國定 0–8H 合計＝國定出勤＋國定例／休；匯出另附合併欄位。</p>
+          <section class="issues-section"><h3>待核對事項 <span id="issue-count"></span></h3><ul id="issues"></ul></section>
+          <section class="daily-section"><div class="section-head"><div><h2>逐日計算明細</h2><p>保留原班別、Excel 位置與轉移關係。</p></div><div><label for="employee">查看員工</label><select id="employee"></select></div></div>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="員工逐日明細，可水平捲動"><table id="daily"><thead><tr><th scope="col">日期</th><th scope="col">原班別</th><th scope="col">普通</th><th scope="col">休息日<br>2／6／3</th><th scope="col">國定出勤<br>8／2／1</th><th scope="col">國定例／休</th><th scope="col">小計</th><th scope="col">依據與核對事項</th></tr></thead><tbody></tbody></table></div>
+          </section>
+        </div>
+      </section>
+    </div>
+    <section class="rule-note"><h2>本版計算口徑</h2><div class="rule-columns"><p><strong>普通班與大班</strong><br>普通日／夜班每班 1.2H。$日／$夜按 2／6／3H 分段。家照、公假、身調假、補休未出勤均為 0H。</p><p><strong>國定本日</strong><br>*日／*夜按 8／2／1H；例／休計 8H。特休計 0H、不扣額度。10/10 單寫「國慶日」為未出勤 0H。</p><p><strong>公休轉移</strong><br>回溯最近普通日班，取消 1.2H、改計 8／2／1H。資料不足、未知班別或衝突均列待核對。</p></div></section>
+  </main><footer>班表僅存於目前分頁記憶體；重新整理即清除。請自行保存匯出的核對報表。</footer>
+</body></html>
