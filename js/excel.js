@@ -1,4 +1,4 @@
-import { datesInMonth, validDate, KEYS, LABELS } from './rules.js';
+import { datesInMonth, validDate, KEYS, LABELS, REGIMES } from './rules.js';
 
 const text = v => String(v ?? '').trim();
 const NAME = ['姓名','員工姓名','員工'];
@@ -61,7 +61,27 @@ export function rosterBlocks(XLSX,workbook,sheetName) {
   const {ws,rows}=sheetRows(XLSX,workbook,sheetName);
   return findRosterBlocks(rows,ws);
 }
-export function parseSheet(XLSX, workbook, sheetName, month, blockId='') {
+export function rosterMonth(XLSX,workbook,sheetName) {
+  const {ws,rows}=sheetRows(XLSX,workbook,sheetName), months=new Set();
+  const add=value=>{if(validDate(value+'-01'))months.add(value);};
+  for(const block of findRosterBlocks(rows,ws))add(block.month);
+  const header=rows.findIndex(r=>r.some(v=>NAME.includes(text(v))));
+  const title=[sheetName,...rows.slice(0,header<0?3:header).flat()].join(' ');
+  for(const match of title.matchAll(/(\d{3,4})年\s*(\d{1,2})月/g))add(`${Number(match[1])+(match[1].length===3?1911:0)}-${match[2].padStart(2,'0')}`);
+  if(header>=0) {
+    const dateCol=rows[header].findIndex(v=>DATE.includes(text(v)));
+    const values=dateCol>=0?rows.slice(header+1).map(r=>r[dateCol]):rows.slice(header,header+3).flatMap(r=>r.filter((_,c)=>![...NAME,...ID].includes(text(rows[header][c]))));
+    for(const v of values) {
+      if(!(v instanceof Date) && !(typeof v==='number' && v>10000) && !/^\d{3,4}[年/.-]\d{1,2}[月/.-]\d{1,2}日?$/.test(text(v)))continue;
+      const date=dateValue(v,'2000-01',XLSX,!!workbook.Workbook?.WBProps?.date1904);
+      if(validDate(date || ''))add(date.slice(0,7));
+    }
+  }
+  if(months.size>1)throw new Error('班表出現不同年月，請核對工作表與日期，不能自動選用其中一個月份。');
+  return [...months][0] || '';
+}
+export function parseSheet(XLSX, workbook, sheetName, month, blockId='', {regime='threeShift',excludeLeading=0}={}) {
+  if(!Object.hasOwn(REGIMES,regime))throw new Error('請選擇有效班制。');
   datesInMonth(month);
   const {ws,rows}=sheetRows(XLSX,workbook,sheetName);
   const issues=[], candidates=[];
@@ -77,7 +97,7 @@ export function parseSheet(XLSX, workbook, sheetName, month, blockId='') {
     }
   }
   const blocks=candidates.length ? [] : findRosterBlocks(rows,ws);
-  if(blocks.length && !blockId)throw new Error('請選擇班表區段，並確認該區段人員適用三班制；不自動合併不同班制。');
+  if(blocks.length && !blockId)throw new Error('請選擇班表區段，並確認適用班制。');
   const schema=blocks.length ? blocks.find(b=>b.id===blockId) : candidates[0];
   if (blocks.length && !schema)throw new Error('所選班表區段無效，請重新選擇。');
   if (!blocks.length && candidates.length!==1) throw new Error(candidates.length ? '找到多組姓名表頭，請將每組另存工作表，避免混算。' : '找不到明確表頭。支援姓名表頭，或「年月／星期／完整日期」的分區班表；可先下載範本。');
@@ -111,15 +131,24 @@ export function parseSheet(XLSX, workbook, sheetName, month, blockId='') {
       seen.add(col.date);
     }
   }
-  const people=new Map();
+  const people=new Map(), excluded=[];
+  if(excludeLeading) {
+    if(regime!=='regular' || schema.layout!=='wide' || schema.endRow-schema.r<=excludeLeading)throw new Error('下方區段不足以辨識前三位與替班人員，請核對版型。');
+    const leading=rows.slice(schema.r+1,schema.r+1+excludeLeading).map(r=>text(r[schema.nameCol]));
+    if(leading.some(n=>!n || n==='段替班') || new Set(leading).size!==excludeLeading)throw new Error('下方前三位姓名缺漏或重複，無法確認站長／總務排除範圍。');
+  }
   for (let r=schema.r+1;r<=(schema.endRow ?? rows.length-1);r++) {
     if (!rows[r].some(v=>v!==null && text(v)!=='')) continue;
     const rawName=safe(r,schema.nameCol), name=text(rawName);
     if (!name || typeof rawName!=='string' || NAME.includes(name)) { issues.push(`第 ${r+1} 列姓名缺漏／不明，該列未納入，請核對是否為員工。`); continue; }
     if (/^(合計|總計|備註|說明)/.test(name)) { issues.push(`第 ${r+1} 列「${name}」可能是備註或合計，未納入，請人工核對。`); continue; }
+    if(r<=schema.r+excludeLeading || (regime==='regular' && name==='段替班')) {
+      excluded.push({name,source:ref(r,schema.nameCol),reason:name==='段替班'?'段替班：外部支援':r===schema.r+1?'下方第1位：站長':'下方第2–3位：總務'});
+      continue;
+    }
     const id=schema.idCol>=0 ? text(safe(r,schema.idCol)) : '';
     const key=id ? `id:${id}` : `name:${name}`;
-    if (!people.has(key)) people.set(key,{name,id,records:[]});
+    if (!people.has(key)) people.set(key,{name,id,regime,records:[]});
     const p=people.get(key);
     if (p.name!==name) issues.push(`員工編號 ${id} 對應不同姓名，請核對。`);
     if (schema.layout==='wide' && p.records.length) issues.push(`員工「${name}」有重複橫排資料；同名者請補上不同員工編號。`);
@@ -131,14 +160,31 @@ export function parseSheet(XLSX, workbook, sheetName, month, blockId='') {
     }
   }
   if (!people.size) throw new Error('找不到員工資料，請核對工作表及姓名欄。');
-  return {employees:[...people.values()],issues,sheetName,month,layout:schema.layout,headerRow:schema.r+1,
+  return {employees:[...people.values()],excluded,issues,sheetName,month,layout:schema.layout,headerRow:schema.r+1,
     selection:schema.label || '全工作表',blockCount:blocks.length,
     dateCount:schema.columns?.length ?? new Set([...people.values()].flatMap(p=>p.records.map(r=>r.date))).size};
+}
+// The supplied two-block layout fixes upper/lower roles; other layouts need explicit selection.
+export function parseRoster(XLSX,workbook,sheetName,month,selection='',regime='threeShift') {
+  const blocks=rosterBlocks(XLSX,workbook,sheetName);
+  if(!blocks.length)return parseSheet(XLSX,workbook,sheetName,month,'',{regime});
+  if(blocks.length>2)throw new Error('目前分區自動班制對應只支援上方三班制及下方常日班兩區；請另存所需人員為姓名表頭版型後選擇班制。');
+  const chosen=selection==='all'?blocks:blocks.filter(b=>b.id===selection);
+  if(!chosen.length)throw new Error('請選擇班表區段。');
+  const parts=chosen.map(b=>parseSheet(XLSX,workbook,sheetName,month,b.id,{regime:b===blocks[1]?'regular':'threeShift',excludeLeading:b===blocks[1]?3:0}));
+  const employees=parts.flatMap(p=>p.employees),issues=parts.flatMap(p=>p.issues);
+  const seen=new Set();
+  for(const p of employees) {
+    const key=p.id?`id:${p.id}`:`name:${p.name}`;
+    if(seen.has(key))throw new Error('不同區段有重複員工身分，請核對姓名／員編與班制，避免重複計算。');
+    seen.add(key);
+  }
+  return {...parts[0],employees,issues,excluded:parts.flatMap(p=>p.excluded),headerRows:parts.map(p=>p.headerRow),selection:parts.map(p=>p.selection).join('；')};
 }
 export function combineEmployees(current, previous) {
   const key=p=>p.id ? `id:${p.id}` : `name:${p.name}`;
   return current.map(p=> {
-    const old=previous.find(q=>key(q)===key(p) && q.name===p.name);
+    const old=previous.find(q=>key(q)===key(p) && q.name===p.name && (q.regime ?? 'threeShift')===(p.regime ?? 'threeShift'));
     return {...p,records:[...(old?.records || []),...p.records]};
   });
 }
@@ -150,12 +196,13 @@ export function reportWorkbook(XLSX, report, metadata={}) {
     ws['!autofilter']={ref:ws['!ref']};
     XLSX.utils.book_append_sheet(wb,ws,name);
   };
-  append('統計總表', [['結算年月','姓名','員工編號','核對狀態',...LABELS,'國定 0–8H 合計','總計費時數'],
-    ...report.employees.map(p=>[report.month,p.name,p.id,p.confirmed?'規則內核對通過（非核定）':'暫計／待核對',...KEYS.map(k=>p.totals[k]),p.totals.holiday08Combined,p.totals.total]),
-    [report.month,'全體合計','',report.confirmed?'規則內核對通過（非核定）':'暫計／待核對',...KEYS.map(k=>report.totals[k]),report.totals.holiday08Combined,report.totals.total]]);
-  append('每日明細', [['姓名','員工編號','日期','原班別','國定本日',...LABELS,'當日合計','計算依據','轉移來源 → 目標','資料位置','異常'],
-    ...report.employees.flatMap(p=>p.detail.map(r=>[p.name,p.id,r.date,r.symbol,r.isHoliday?'是':'否',...KEYS.map(k=>r.hours[k]),KEYS.reduce((n,k)=>n+r.hours[k],0),r.note,r.transfer,r.source || '',r.issues.join('；')]))]);
+  append('統計總表', [['結算年月','姓名','員工編號','班制','需核對事項',...LABELS,'國定 0–8H 合計','總計費時數'],
+    ...report.employees.map(p=>[report.month,p.name,p.id,REGIMES[p.regime],p.confirmed?'':'需核對／暫計',...KEYS.map(k=>p.totals[k]),p.totals.holiday08Combined,p.totals.total]),
+    [report.month,'全體合計','','',report.confirmed?'':'需核對／暫計',...KEYS.map(k=>report.totals[k]),report.totals.holiday08Combined,report.totals.total]]);
+  append('每日明細', [['姓名','員工編號','班制','日期','原班別','國定本日',...LABELS,'當日合計','計算依據','轉移來源 → 目標','資料位置','異常'],
+    ...report.employees.flatMap(p=>p.detail.map(r=>[p.name,p.id,REGIMES[p.regime],r.date,r.symbol,r.isHoliday?'是':'否',...KEYS.map(k=>r.hours[k]),KEYS.reduce((n,k)=>n+r.hours[k],0),r.note,r.transfer,r.source || '',r.issues.join('；')]))]);
   append('待核對事項',[['姓名','日期','問題'],...report.issues.map(m=>['全體','',m]),...report.employees.flatMap(p=>p.issues.map(i=>[p.name,i.date,i.message]))]);
-  append('計算設定',[['項目','內容'],['規則版本',report.ruleVersion],['用途','依提供規則內部試算，非核定薪資；只計時數'],['國定本日',report.holidays.join('、')],['已人工確認月份',report.confirmedMonths.join('、')],...Object.entries(metadata).map(([k,v])=>[k,String(v)])]);
+  append('計算設定',[['項目','內容'],['規則版本',report.ruleVersion],['用途','依提供規則內部試算，非核定薪資；只計時數'],['國定本日',report.holidays.join('、')],['已設定國定日期月份',report.confirmedMonths.join('、')],...Object.entries(metadata).map(([k,v])=>[k,String(v)])]);
+  if(report.excluded?.length)append('排除人員',[['姓名','資料位置','排除原因'],...report.excluded.map(p=>[p.name,p.source,p.reason])]);
   return wb;
 }
