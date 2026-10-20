@@ -115,6 +115,12 @@ function renderReport() {
   });
   const total=document.createElement('tr');total.append(node('td','全體合計'));KEYS.forEach(k=>total.append(node('td',fmt(report.totals[k]))));total.append(node('td',fmt(report.totals.total),'total-hours'));if(!report.confirmed)total.append(node('td','暫計'));$('status-heading').hidden=report.confirmed;document.querySelector('#summary tfoot').replaceChildren(total);
   const issues=[...report.issues.map(m=>({name:'全體',date:'',message:m})),...report.employees.flatMap(p=>p.issues.map(i=>({...i,name:p.name})))];
+  $('metric-people').textContent=String(report.employees.length);
+  $('metric-hours').textContent=fmt(report.totals.total);
+  $('metric-hours-label').textContent=report.confirmed?'本月總時數':'本月暫計時數';
+  $('metric-issues').textContent=String(issues.length);
+  $('metric-check').classList.toggle('pending',issues.length>0);
+  $('metric-check-note').textContent=issues.length?'請查看下方待核對事項':'未偵測到資料異常';
   $('issues-section').hidden=!issues.length;
   $('issue-count').textContent=`（${issues.length}）`;
   $('issues').replaceChildren(...(issues.length?issues.map(i=>{const li=document.createElement('li');li.append(node('strong',`${i.name} ${i.date}　`),document.createTextNode(i.message));return li;}):[]));
@@ -122,16 +128,21 @@ function renderReport() {
 }
 function renderDaily() {
   const p=state.report?.employees[Number($('employee').value)];if(!p)return;
+  document.querySelectorAll('#summary tbody tr').forEach((row,i)=>row.classList.toggle('selected',i===Number($('employee').value)));
   const body=document.querySelector('#daily tbody');body.replaceChildren();
   for(const r of p.detail) {
     const tr=document.createElement('tr');if(r.isHoliday)tr.className='holiday';const h=r.hours;
     for(const value of [r.date+(r.isHoliday?' 國定':''),r.symbol || '空白',fmt(h.ordinary),[h.rest02,h.rest38,h.rest912].map(fmt).join(' / '),[h.holiday08,h.holiday910,h.holiday1112].map(fmt).join(' / '),fmt(h.holidayRest),fmt(KEYS.reduce((n,k)=>n+h[k],0))])tr.append(node('td',value));
     const note=document.createElement('td');note.append(node('span',r.note || '待核對'));
-    if(r.transfer)note.append(node('span',r.transfer,'source'));
     if(r.source)note.append(node('span',r.source,'source'));
+    if(r.transfer)note.append(node('span',r.transfer,'source'));
     if(r.issues.length)note.append(node('p',r.issues.join('；'),'error-text'));
     tr.append(note);body.append(tr);
   }
+  const h=p.totals, total=document.createElement('tr'), label=node('th',`${p.name} 個人總計`);
+  label.scope='row';label.colSpan=2;total.append(label);
+  for(const value of [fmt(h.ordinary),[h.rest02,h.rest38,h.rest912].map(fmt).join(' / '),[h.holiday08,h.holiday910,h.holiday1112].map(fmt).join(' / '),fmt(h.holidayRest),fmt(h.total),p.confirmed&&!state.report.issues.length?'單位：小時（H）':'暫計：有待核對事項，僅含可計算時數'])total.append(node('td',value));
+  document.querySelector('#daily tfoot').replaceChildren(total);
 }
 function saveBook(wb,name) {try {XLSX.writeFile(wb,name,{bookType:'xlsx'});}catch(e){message(`匯出失敗：${e.message}`,true);}}
 $('file').addEventListener('change',e=>importFile(e,'current'));
