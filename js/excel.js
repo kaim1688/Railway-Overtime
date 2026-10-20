@@ -1,4 +1,4 @@
-import { datesInMonth, validDate, KEYS, LABELS, REGIMES } from './rules.js';
+import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE } from './rules.js';
 
 const text = v => String(v ?? '').trim();
 const NAME = ['姓名','員工姓名','員工'];
@@ -199,10 +199,10 @@ export function reportWorkbook(XLSX, report, metadata={}) {
   append('統計總表', [['結算年月','姓名','員工編號','班制','需核對事項',...LABELS,'國定 0–8H 合計','總計費時數'],
     ...report.employees.map(p=>[report.month,p.name,p.id,REGIMES[p.regime],p.confirmed?'':'需核對／暫計',...KEYS.map(k=>p.totals[k]),p.totals.holiday08Combined,p.totals.total]),
     [report.month,'全體合計','','',report.confirmed?'':'需核對／暫計',...KEYS.map(k=>report.totals[k]),report.totals.holiday08Combined,report.totals.total]]);
-  append('每日明細', [['姓名','員工編號','班制','日期','原班別','國定本日',...LABELS,'當日合計','計算依據','轉移來源 → 目標','資料位置','異常'],
-    ...report.employees.flatMap(p=>p.detail.map(r=>[p.name,p.id,REGIMES[p.regime],r.date,r.symbol,r.isHoliday?'是':'否',...KEYS.map(k=>r.hours[k]),KEYS.reduce((n,k)=>n+r.hours[k],0),r.note,r.transfer,r.source || '',r.issues.join('；')]))]);
+  append('每日明細', [['姓名','員工編號','班制','日期','原班別','國定本日',...LABELS,'當日合計','計算依據','轉移來源 → 目標','資料位置','異常','星號出勤特例'],
+    ...report.employees.flatMap(p=>p.detail.map(r=>[p.name,p.id,REGIMES[p.regime],r.date,r.symbol,r.isHoliday?'是':'否',...KEYS.map(k=>r.hours[k]),KEYS.reduce((n,k)=>n+r.hours[k],0),r.note,r.transfer,r.source || '',r.issues.join('；'),r.isSpecialAttendance?'使用者確認日期；算法及疑義見計算依據／異常':'']))]);
   append('待核對事項',[['姓名','日期','問題'],...report.issues.map(m=>['全體','',m]),...report.employees.flatMap(p=>p.issues.map(i=>[p.name,i.date,i.message]))]);
-  append('計算設定',[['項目','內容'],['規則版本',report.ruleVersion],['用途','依提供規則內部試算，非核定薪資；只計時數'],['國定本日',report.holidays.join('、')],['已設定國定日期月份',report.confirmedMonths.join('、')],...Object.entries(metadata).map(([k,v])=>[k,String(v)])]);
+  append('計算設定',[['項目','內容'],['規則版本',report.ruleVersion],['用途','依提供規則內部試算，非核定薪資；只計時數'],['國定本日',report.holidays.join('、')],['已設定國定日期月份',report.confirmedMonths.join('、')],...(STARRED_ATTENDANCE_DATE.startsWith(report.month)?[['星號出勤特例',STARRED_ATTENDANCE_RULE]]:[]),...Object.entries(metadata).map(([k,v])=>[k,String(v)])]);
   if(report.excluded?.length)append('排除人員',[['姓名','資料位置','排除原因'],...report.excluded.map(p=>[p.name,p.source,p.reason])]);
   return wb;
 }
