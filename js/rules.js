@@ -1,10 +1,10 @@
-export const RULE_VERSION = '使用者規則草稿 v1.4（2026-10-20）/ MVP 0.3.1';
+export const RULE_VERSION = '使用者規則草稿 v1.5（2026-10-21）/ MVP 0.3.2';
 export const STARRED_ATTENDANCE_DATE = '2026-11-28';
 export const STARRED_ATTENDANCE_RULE = '2026/11/28 使用者確認：三班制 *日／*夜、常日班帶 * 替日班計國定出勤 8／2／1H；帶 * 的已知 8 小時班計國定出勤 8H，不另加普通延時，不將休假套用一般國定例休或公休轉移。';
 export { DEFAULT_HOLIDAYS } from './holidays.js';
 export const REGIMES = {threeShift:'三班制', regular:'常日班替班'};
 export const RELIEF_SHIFTS = ['日轍','日剪','日售','日運','日調','日號','日售領','夜轍','夜剪','夜售','夜運','夜調'];
-export const EIGHT_HOUR_SHIFTS = ['晚常剪','A售','B售','晚A售','早B售','A剪','B剪','早B剪','S','晚AS','早BS'];
+export const EIGHT_HOUR_SHIFTS = ['晚常剪','A售','B售','晚A售','早B售','A剪','B剪','早B剪','S','晚S','晚AS','早BS'];
 const HOLIDAY_NAMES = {'國慶日':'10-10','光復節':'10-25'};
 function regularKind(symbol) {
   const starred=symbol.startsWith('*'), base=starred?symbol.slice(1):symbol;
