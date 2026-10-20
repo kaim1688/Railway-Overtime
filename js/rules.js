@@ -1,4 +1,6 @@
-export const RULE_VERSION = '使用者規則草稿 v1.3（2026-10-19）/ MVP 0.3.1';
+export const RULE_VERSION = '使用者規則草稿 v1.4（2026-10-20）/ MVP 0.3.1';
+export const STARRED_ATTENDANCE_DATE = '2026-11-28';
+export const STARRED_ATTENDANCE_RULE = '2026/11/28 使用者確認：三班制 *日／*夜、常日班帶 * 替日班計國定出勤 8／2／1H；帶 * 的已知 8 小時班計國定出勤 8H，不另加普通延時，不將休假套用一般國定例休或公休轉移。';
 export { DEFAULT_HOLIDAYS } from './holidays.js';
 export const REGIMES = {threeShift:'三班制', regular:'常日班替班'};
 export const RELIEF_SHIFTS = ['日轍','日剪','日售','日運','日調','日號','日售領','夜轍','夜剪','夜售','夜運','夜調'];
@@ -13,11 +15,11 @@ function regularKind(symbol) {
   if(symbol==='喪假')return 'noWork';
   if(Object.hasOwn(HOLIDAY_NAMES,symbol))return 'holidayOff';
   const shared=Object.hasOwn(SYMBOLS,symbol)?SYMBOLS[symbol]:undefined;
-  return ['noWork','leave'].includes(shared)?shared:undefined;
+  return ['noWork','leave','off'].includes(shared)?shared:undefined;
 }
 export const KEYS = ['ordinary', 'rest02', 'rest38', 'rest912', 'holiday08', 'holiday910', 'holiday1112', 'holidayRest'];
 export const LABELS = ['普通延長', '休息日 0–2H', '休息日 3–8H', '休息日 9–12H', '國定出勤 0–8H', '國定 9–10H', '國定 11–12H', '國定例／休 0–8H'];
-export const SYMBOLS = Object.freeze({ '日':'day', '夜':'night', '$日':'big', '$夜':'big', '*日':'holiday', '*夜':'holiday', '例':'rest', '休':'rest', '公休':'off', '特休':'leave', '家照':'noWork', '公假':'noWork', '身調假':'noWork', '補休':'noWork', '國慶日':'holidayOff' });
+export const SYMBOLS = Object.freeze({ '日':'day', '夜':'night', '$日':'big', '$夜':'big', '*日':'holiday', '*夜':'holiday', '例':'rest', '休':'rest', '公休':'off', '特休':'leave', '家照':'noWork', '家照假':'noWork', '家庭照顧假':'noWork', '公假':'noWork', '身調假':'noWork', '身心調適假':'noWork', '選舉假':'noWork', '補休':'noWork', '國慶日':'holidayOff' });
 const zero = () => Object.fromEntries(KEYS.map(k => [k, 0]));
 const round = n => Math.round(n * 10) / 10;
 export function hoursFor(type) {
@@ -87,14 +89,24 @@ export function calculate({ month, employees, holidays, confirmedMonths = [], in
         const target = `${row.date.slice(0,4)}-${(compLeave[1] || compLeave[3]).padStart(2,'0')}-${(compLeave[2] || compLeave[4]).padStart(2,'0')}`;
         if (validDate(target)) row.compensationTarget = target;
       }
-      row.isHoliday = holidaySet.has(row.date);
+      row.isHoliday = holidaySet.has(row.date) && row.date!==STARRED_ATTENDANCE_DATE;
+      row.isSpecialAttendance = row.date===STARRED_ATTENDANCE_DATE && row.symbol.startsWith('*');
     }
     for (const row of rows) {
       if (row.duplicate) continue;
       if (!row.kind) { warn(row,row.symbol ? `無法辨識班別「${row.symbol}」。` : '班別空白／缺少當日資料。'); continue; }
       if (!reviewed.has(row.date.slice(0,7))) { warn(row,'該月國定本日清單未確認。'); continue; }
+      if(row.isSpecialAttendance) {
+        if(regular && rows.some(r=>r.compensationTarget===row.date))warn(row,'11/28 星號出勤另有補休註記，請人工核對，不自行抵銷。');
+        else if((!regular && row.kind==='holiday') || (regular && row.kind==='holidayLong' && row.symbol.startsWith('*日'))) {
+          row.hours=hoursFor('holiday');row.note='11/28 星號出勤特例（使用者確認）：國定出勤 8／2／1H，不另加普通延時';
+        } else if(regular && row.kind==='holidayShort') {
+          row.hours=hoursFor('holidayShort');row.note='11/28 星號出勤特例（使用者確認）：8 小時班計國定出勤 8H';
+        } else warn(row,'11/28 此星號班別的出勤算法尚未確認，請人工核對。');
+        continue;
+      }
       if(regular) {
-        if(['noWork','leave','rest'].includes(row.kind))row.note=row.compensationNote || '常日班未出勤：加班 0H';
+        if(['noWork','leave','rest','off'].includes(row.kind))row.note=row.compensationNote || '常日班未出勤：加班 0H';
         else if(row.kind==='holidayOff') {
           if(row.isHoliday && row.date.slice(5)===HOLIDAY_NAMES[row.symbol])row.note=`${row.symbol}放假：加班 0H`;
           else warn(row,'節日名稱與實際國定本日不符，請核對。');
@@ -132,7 +144,7 @@ export function calculate({ month, employees, holidays, confirmedMonths = [], in
         if (['day','night'].includes(row.kind)) { row.hours=hoursFor('ordinary'); row.note='普通延長 1.2H'; }
         else if (row.kind==='big') { row.hours=hoursFor('big'); row.note='休息日大班 2／6／3H'; }
         else if (row.kind==='holiday') warn(row,'非國定本日出現星號出勤，請核對日期／班別。');
-        else row.note='本版不計加班';
+        else row.note='未出勤：加班 0H';
       }
     }
     // A known off-day stays searchable even when its own transfer needs review.

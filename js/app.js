@@ -1,14 +1,16 @@
-import { KEYS, REGIMES, datesInMonth, previousMonth } from './rules.js';
+import { KEYS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE } from './rules.js';
 import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth } from './excel.js';
 import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js';
 import { sampleRows, templateRows } from './sample.js';
+import {initPrinting,clearPrint} from './print.js';
 const $=id=>document.getElementById(id);
 const XLSX=globalThis.XLSX;
 const state={current:null,previous:null,report:null,demo:false,busy:false,calendars:defaultCalendars(),dateDrafts:new Set()};
 const fmt=n=>Number(n.toFixed(1)).toString();
+const specialDateNote=month=>STARRED_ATTENDANCE_DATE.startsWith(month || 'none')?'；11/28 星號出勤另依特例':'';
 function node(tag,value,className) {const e=document.createElement(tag);e.textContent=value;if(className)e.className=className;return e;}
 function message(value,error=false) {$('message').replaceChildren(...(value?[node('p',value,`feedback${error?' error':''}`)]:[]));}
-function invalidate() {state.report=null;$('export').disabled=true;$('report').hidden=true;$('empty').hidden=false;$('result-caption').textContent='等待完整的班表與日期設定。';message('');}
+function invalidate() {state.report=null;clearPrint();$('print-summary').disabled=true;$('print-employee').disabled=true;$('export').disabled=true;$('report').hidden=true;$('empty').hidden=false;$('result-caption').textContent='等待完整的班表與日期設定。';message('');}
 function refreshDates() {
   const month=$('month').value;
   for(const prefix of ['', 'prev-']) {
@@ -17,7 +19,7 @@ function refreshDates() {
     const entry=state.calendars[target];
     $(prefix+'holidays').value=entry?.dates.join('\n') || '';
     $(prefix+'holiday-source').textContent=entry?entry.source:'此月份尚未設定國定本日；空白不代表沒有國定日。';
-    $(prefix+'holiday-summary').textContent=target?(entry?`${target}：${entry.dates.length?entry.dates.map(d=>d.slice(5).replace('-','/')).join('、'):'無國定日'}`:`${target}：日期尚未設定`):'請先指定結算年月。';
+    $(prefix+'holiday-summary').textContent=target?(entry?`${target}：${entry.dates.length?entry.dates.map(d=>d.slice(5).replace('-','/')).join('、'):'無一般國定日'}${specialDateNote(target)}`:`${target}：日期尚未設定`):'請先指定結算年月。';
     state.dateDrafts.delete(prefix);
   }
 }
@@ -75,7 +77,7 @@ function setDates(prefix,empty=false) {
     state.dateDrafts.delete(prefix);
     $(prefix+'holidays').value=dates.join('\n');
     $(prefix+'holiday-source').textContent=state.calendars[month].source;
-    $(prefix+'holiday-summary').textContent=`${month}：${dates.length?dates.map(d=>d.slice(5).replace('-','/')).join('、'):'無國定日'}`;
+    $(prefix+'holiday-summary').textContent=`${month}：${dates.length?dates.map(d=>d.slice(5).replace('-','/')).join('、'):'無一般國定日'}${specialDateNote(month)}`;
     run();
   }catch(error){message(error.message,true);}
 }
@@ -103,6 +105,7 @@ function run() {
 }
 function renderReport() {
   const report=state.report;$('empty').hidden=true;$('report').hidden=false;$('export').disabled=false;
+  $('print-summary').disabled=!report.employees.length;
   $('result-caption').textContent=`${report.month} · ${report.employees.length} 位員工（三班制 ${report.employees.filter(p=>p.regime==='threeShift').length}／常日班 ${report.employees.filter(p=>p.regime==='regular').length}）· 單位 H${state.demo?' · 合成範例':''}`;
   $('excluded').textContent=report.excluded.length?`未計算 ${report.excluded.length} 位：`+report.excluded.map(p=>`${p.name}（${p.source}，${p.reason}）`).join('；'):'此範圍沒有排除人員。';
   $('report-state').className=`report-state${report.confirmed?'':' pending'}`;
@@ -128,11 +131,12 @@ function renderReport() {
 }
 function renderDaily() {
   const p=state.report?.employees[Number($('employee').value)];if(!p)return;
+  clearPrint();$('print-employee').disabled=false;
   document.querySelectorAll('#summary tbody tr').forEach((row,i)=>row.classList.toggle('selected',i===Number($('employee').value)));
   const body=document.querySelector('#daily tbody');body.replaceChildren();
   for(const r of p.detail) {
-    const tr=document.createElement('tr');if(r.isHoliday)tr.className='holiday';const h=r.hours;
-    for(const value of [r.date+(r.isHoliday?' 國定':''),r.symbol || '空白',fmt(h.ordinary),[h.rest02,h.rest38,h.rest912].map(fmt).join(' / '),[h.holiday08,h.holiday910,h.holiday1112].map(fmt).join(' / '),fmt(h.holidayRest),fmt(KEYS.reduce((n,k)=>n+h[k],0))])tr.append(node('td',value));
+    const tr=document.createElement('tr');if(r.isHoliday || r.isSpecialAttendance)tr.className='holiday';const h=r.hours;
+    for(const value of [r.date+(r.isSpecialAttendance?' 出勤特例':r.isHoliday?' 國定':''),r.symbol || '空白',fmt(h.ordinary),[h.rest02,h.rest38,h.rest912].map(fmt).join(' / '),[h.holiday08,h.holiday910,h.holiday1112].map(fmt).join(' / '),fmt(h.holidayRest),fmt(KEYS.reduce((n,k)=>n+h[k],0))])tr.append(node('td',value));
     const note=document.createElement('td');note.append(node('span',r.note || '待核對'));
     if(r.source)note.append(node('span',r.source,'source'));
     if(r.transfer)note.append(node('span',r.transfer,'source'));
@@ -165,5 +169,6 @@ $('sample').addEventListener('click',()=>{
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sampleRows()),'合成範例');
   setBook('current',wb,'內建合成範例（非正式班表）');$('regime').value='threeShift';state.demo=true;run();
 });
+initPrinting(()=>state.report,()=>Number($('employee').value));
 refreshDates();
 if(!XLSX){message('本機 SheetJS 程式庫載入失敗，請確認 dist/vendor/xlsx.full.min.js 完整存在。',true);busy(true);}
