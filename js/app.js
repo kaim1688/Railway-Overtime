@@ -1,16 +1,19 @@
-import { KEYS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE } from './rules.js';
+import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE } from './rules.js';
 import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth } from './excel.js';
 import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js';
 import { sampleRows, templateRows } from './sample.js';
 import {initPrinting,clearPrint} from './print.js';
+import {initCatGreeting} from './cat.js';
 const $=id=>document.getElementById(id);
 const XLSX=globalThis.XLSX;
+const mobile=window.matchMedia('(max-width:720px)');
+mobile.addEventListener('change',()=>{if(!mobile.matches)$('setup-fold').open=true;});
 const state={current:null,previous:null,report:null,demo:false,busy:false,calendars:defaultCalendars(),dateDrafts:new Set()};
 const fmt=n=>Number(n.toFixed(1)).toString();
 const specialDateNote=month=>STARRED_ATTENDANCE_DATE.startsWith(month || 'none')?'；11/28 星號出勤另依特例':'';
 function node(tag,value,className) {const e=document.createElement(tag);e.textContent=value;if(className)e.className=className;return e;}
 function message(value,error=false) {$('message').replaceChildren(...(value?[node('p',value,`feedback${error?' error':''}`)]:[]));}
-function invalidate() {state.report=null;clearPrint();$('print-summary').disabled=true;$('print-employee').disabled=true;$('export').disabled=true;$('report').hidden=true;$('empty').hidden=false;$('result-caption').textContent='等待完整的班表與日期設定。';message('');}
+function invalidate() {$('setup-fold').open=true;$('setup-caption').textContent='選擇或調整班表設定';state.report=null;clearPrint();$('print-summary').disabled=true;$('print-employee').disabled=true;$('export').disabled=true;$('report').hidden=true;$('empty').hidden=false;$('result-caption').textContent='等待完整的班表與日期設定。';message('');}
 function refreshDates() {
   const month=$('month').value;
   for(const prefix of ['', 'prev-']) {
@@ -101,7 +104,13 @@ function run() {
       '前三位排除依據':current.excluded.some(p=>p.reason.startsWith('下方'))?'原版下方第1位站長、第2–3位總務；依既定位置排除':'未套用位置排除'};
     $('import-info').textContent=`${state.current.name}｜${current.sheetName}｜表頭第 ${current.headerRows?.join('、') || current.headerRow} 列｜${current.dateCount} 個日期｜${current.selection}`;
     renderReport();
+    $('setup-caption').textContent=`${report.month} · ${report.employees.length} 人 · 點開更換班表`;
+    if(mobile.matches){$('setup-fold').open=false;$('results-title').scrollIntoView({block:'start'});}
   }catch(error){message(`未完成計算：${error.message}`,true);}
+}
+function selectEmployee(index) {
+  $('employee').value=String(index);renderDaily();
+  $('daily-section').scrollIntoView({block:'start'});$('employee').focus({preventScroll:true});
 }
 function renderReport() {
   const report=state.report;$('empty').hidden=true;$('report').hidden=false;$('export').disabled=false;
@@ -113,9 +122,19 @@ function renderReport() {
   const body=document.querySelector('#summary tbody');body.replaceChildren();
   report.employees.forEach((p,i)=>{
     const tr=document.createElement('tr'), first=document.createElement('td'), link=node('button',p.name+(p.id?` · ${p.id}`:''),'person-link');
-    link.type='button';link.addEventListener('click',()=>{$('employee').value=String(i);renderDaily();$('employee').focus();});first.append(link,node('span',REGIMES[p.regime],'source'));tr.append(first);
+    link.type='button';link.addEventListener('click',()=>selectEmployee(i));first.append(link,node('span',REGIMES[p.regime],'source'));tr.append(first);
     KEYS.forEach(k=>tr.append(node('td',fmt(p.totals[k]))));tr.append(node('td',fmt(p.totals.total),'total-hours'));if(!report.confirmed)tr.append(node('td',p.confirmed?'':'需核對','status'+(p.confirmed?'':' pending')));body.append(tr);
   });
+  $('mobile-summary').replaceChildren(...report.employees.map((p,i)=>{
+    const detail=document.createElement('details'),summary=document.createElement('summary');
+    summary.append(node('span',p.name+(p.id?` · ${p.id}`:''),'mobile-person'),node('strong',`${fmt(p.totals.total)} H`));
+    if(!p.confirmed || report.issues.length)summary.append(node('span','需核對／暫計','mobile-warning'));
+    const content=node('div','','mobile-person-detail'),list=document.createElement('dl');
+    content.append(node('p',REGIMES[p.regime],'help'));
+    KEYS.forEach((key,index)=>{const group=document.createElement('div');group.append(node('dt',LABELS[index]),node('dd',`${fmt(p.totals[key])} H`));list.append(group);});
+    const button=node('button','查看逐日明細');button.type='button';button.addEventListener('click',()=>selectEmployee(i));
+    content.append(list,button);detail.append(summary,content);return detail;
+  }));
   const total=document.createElement('tr');total.append(node('td','全體合計'));KEYS.forEach(k=>total.append(node('td',fmt(report.totals[k]))));total.append(node('td',fmt(report.totals.total),'total-hours'));if(!report.confirmed)total.append(node('td','暫計'));$('status-heading').hidden=report.confirmed;document.querySelector('#summary tfoot').replaceChildren(total);
   const issues=[...report.issues.map(m=>({name:'全體',date:'',message:m})),...report.employees.flatMap(p=>p.issues.map(i=>({...i,name:p.name})))];
   $('metric-people').textContent=String(report.employees.length);
@@ -132,20 +151,24 @@ function renderReport() {
 function renderDaily() {
   const p=state.report?.employees[Number($('employee').value)];if(!p)return;
   clearPrint();$('print-employee').disabled=false;
+  $('daily-context').textContent=`${state.report.month} · ${p.name} · ${p.confirmed&&!state.report.issues.length?'總計':'暫計'} ${fmt(p.totals.total)} H`;
   document.querySelectorAll('#summary tbody tr').forEach((row,i)=>row.classList.toggle('selected',i===Number($('employee').value)));
   const body=document.querySelector('#daily tbody');body.replaceChildren();
   for(const r of p.detail) {
     const tr=document.createElement('tr');if(r.isHoliday || r.isSpecialAttendance)tr.className='holiday';const h=r.hours;
-    for(const value of [r.date+(r.isSpecialAttendance?' 出勤特例':r.isHoliday?' 國定':''),r.symbol || '空白',fmt(h.ordinary),[h.rest02,h.rest38,h.rest912].map(fmt).join(' / '),[h.holiday08,h.holiday910,h.holiday1112].map(fmt).join(' / '),fmt(h.holidayRest),fmt(KEYS.reduce((n,k)=>n+h[k],0))])tr.append(node('td',value));
+    for(const value of [r.date+(r.isSpecialAttendance?' 出勤特例':r.isHoliday?' 國定':''),r.symbol || '空白',fmt(h.ordinary),fmt(h.ordinary34),[h.rest02,h.rest38,h.rest912].map(fmt).join(' / '),[h.holiday08,h.holiday910,h.holiday1112].map(fmt).join(' / '),fmt(h.holidayRest),fmt(KEYS.reduce((n,k)=>n+h[k],0))])tr.append(node('td',value));
     const note=document.createElement('td');note.append(node('span',r.note || '待核對'));
     if(r.source)note.append(node('span',r.source,'source'));
     if(r.transfer)note.append(node('span',r.transfer,'source'));
     if(r.issues.length)note.append(node('p',r.issues.join('；'),'error-text'));
-    tr.append(note);body.append(tr);
+    tr.append(note);
+    [...tr.children].forEach((cell,index)=>{cell.dataset.label=['日期','原班別',...LABELS.slice(0,2),'休息日 2／6／3','國定出勤 8／2／1','國定例／休','小計','依據與核對事項'][index];});
+    body.append(tr);
   }
   const h=p.totals, total=document.createElement('tr'), label=node('th',`${p.name} 個人總計`);
   label.scope='row';label.colSpan=2;total.append(label);
-  for(const value of [fmt(h.ordinary),[h.rest02,h.rest38,h.rest912].map(fmt).join(' / '),[h.holiday08,h.holiday910,h.holiday1112].map(fmt).join(' / '),fmt(h.holidayRest),fmt(h.total),p.confirmed&&!state.report.issues.length?'單位：小時（H）':'暫計：有待核對事項，僅含可計算時數'])total.append(node('td',value));
+  for(const value of [fmt(h.ordinary),fmt(h.ordinary34),[h.rest02,h.rest38,h.rest912].map(fmt).join(' / '),[h.holiday08,h.holiday910,h.holiday1112].map(fmt).join(' / '),fmt(h.holidayRest),fmt(h.total),p.confirmed&&!state.report.issues.length?'單位：小時（H）':'暫計：有待核對事項，僅含可計算時數'])total.append(node('td',value));
+  [...total.children].forEach((cell,index)=>{cell.dataset.label=['個人總計',...LABELS.slice(0,2),'休息日 2／6／3','國定出勤 8／2／1','國定例／休','總時數','核對狀態'][index];});
   document.querySelector('#daily tfoot').replaceChildren(total);
 }
 function saveBook(wb,name) {try {XLSX.writeFile(wb,name,{bookType:'xlsx'});}catch(e){message(`匯出失敗：${e.message}`,true);}}
@@ -169,6 +192,10 @@ $('sample').addEventListener('click',()=>{
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sampleRows()),'合成範例');
   setBook('current',wb,'內建合成範例（非正式班表）');$('regime').value='threeShift';state.demo=true;run();
 });
+$('summary-view-toggle').addEventListener('click',()=>{
+  const full=$('report').classList.toggle('full-table');$('summary-view-toggle').setAttribute('aria-pressed',String(full));$('summary-view-toggle').textContent=full?'員工摘要':'完整表格';
+});
+initCatGreeting($('cat-greeting'),$('cat-message'),document.querySelector('.rail-panel'));
 initPrinting(()=>state.report,()=>Number($('employee').value));
 refreshDates();
 if(!XLSX){message('本機 SheetJS 程式庫載入失敗，請確認 dist/vendor/xlsx.full.min.js 完整存在。',true);busy(true);}

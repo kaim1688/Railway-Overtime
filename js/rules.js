@@ -1,4 +1,4 @@
-export const RULE_VERSION = '使用者規則草稿 v1.5（2026-10-21）/ MVP 0.3.2';
+export const RULE_VERSION = '使用者規則草稿 v1.6（2026-10-22）/ MVP 0.3.2';
 export const STARRED_ATTENDANCE_DATE = '2026-11-28';
 export const STARRED_ATTENDANCE_RULE = '2026/11/28 使用者確認：三班制 *日／*夜、常日班帶 * 替日班計國定出勤 8／2／1H；帶 * 的已知 8 小時班計國定出勤 8H，不另加普通延時，不將休假套用一般國定例休或公休轉移。';
 export { DEFAULT_HOLIDAYS } from './holidays.js';
@@ -17,15 +17,15 @@ function regularKind(symbol) {
   const shared=Object.hasOwn(SYMBOLS,symbol)?SYMBOLS[symbol]:undefined;
   return ['noWork','leave','off'].includes(shared)?shared:undefined;
 }
-export const KEYS = ['ordinary', 'rest02', 'rest38', 'rest912', 'holiday08', 'holiday910', 'holiday1112', 'holidayRest'];
-export const LABELS = ['普通延長', '休息日 0–2H', '休息日 3–8H', '休息日 9–12H', '國定出勤 0–8H', '國定 9–10H', '國定 11–12H', '國定例／休 0–8H'];
+export const KEYS = ['ordinary', 'ordinary34', 'rest02', 'rest38', 'rest912', 'holiday08', 'holiday910', 'holiday1112', 'holidayRest'];
+export const LABELS = ['延時工資 0–2H', '延時工資 3–4H', '休息日 0–2H', '休息日 3–8H', '休息日 9–12H', '國定出勤 0–8H', '國定 9–10H', '國定 11–12H', '國定例／休 0–8H'];
 export const SYMBOLS = Object.freeze({ '日':'day', '夜':'night', '$日':'big', '$夜':'big', '*日':'holiday', '*夜':'holiday', '例':'rest', '休':'rest', '公休':'off', '特休':'leave', '家照':'noWork', '家照假':'noWork', '家庭照顧假':'noWork', '公假':'noWork', '身調假':'noWork', '身心調適假':'noWork', '選舉假':'noWork', '補休':'noWork', '國慶日':'holidayOff' });
 const zero = () => Object.fromEntries(KEYS.map(k => [k, 0]));
 const round = n => Math.round(n * 10) / 10;
 export function hoursFor(type) {
   const h = zero();
   if (type === 'ordinary') h.ordinary = 1.2;
-  if (type === 'relief') h.ordinary = 3;
+  if (type === 'relief') Object.assign(h,{ordinary:2,ordinary34:1});
   if (type === 'holidayShort') h.holiday08 = 8;
   if (type === 'restShort') Object.assign(h,{rest02:2,rest38:6});
   if (type === 'big') Object.assign(h, { rest02:2, rest38:6, rest912:3 });
@@ -126,7 +126,7 @@ export function calculate({ month, employees, holidays, confirmedMonths = [], in
           else warn(row,'國定本日工作班別缺少 * 或與 $ 衝突，請核對；不自行套用出勤算法。');
         } else if(['holidayLong','holidayShort'].includes(row.kind))warn(row,'非國定本日出現星號出勤，請核對日期／班別。');
         else if(row.kind==='restShort') {row.hours=hoursFor('restShort');row.note='常日班休息日 8 小時出勤：2／6H';}
-        else if(row.kind==='relief') {row.hours=hoursFor('relief');row.note='常日班替日／夜班：普通加班 3H';}
+        else if(row.kind==='relief') {row.hours=hoursFor('relief');row.note='常日班替日／夜班：延時工資 0–2H：2H、3–4H：1H，合計 3H';}
         else row.note='常日班 8 小時班：加班 0H';
         continue;
       }
