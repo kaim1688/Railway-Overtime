@@ -1,4 +1,4 @@
-export const RULE_VERSION = '使用者規則草稿 v1.6（2026-10-22）/ MVP 0.3.2';
+export const RULE_VERSION = '使用者規則草稿 v1.7（2026-10-22）/ MVP 0.3.2';
 export const STARRED_ATTENDANCE_DATE = '2026-11-28';
 export const STARRED_ATTENDANCE_RULE = '2026/11/28 使用者確認：三班制 *日／*夜、常日班帶 * 替日班計國定出勤 8／2／1H；帶 * 的已知 8 小時班計國定出勤 8H，不另加普通延時，不將休假套用一般國定例休或公休轉移。';
 export { DEFAULT_HOLIDAYS } from './holidays.js';
@@ -19,7 +19,7 @@ function regularKind(symbol) {
 }
 export const KEYS = ['ordinary', 'ordinary34', 'rest02', 'rest38', 'rest912', 'holiday08', 'holiday910', 'holiday1112', 'holidayRest'];
 export const LABELS = ['延時工資 0–2H', '延時工資 3–4H', '休息日 0–2H', '休息日 3–8H', '休息日 9–12H', '國定出勤 0–8H', '國定 9–10H', '國定 11–12H', '國定例／休 0–8H'];
-export const SYMBOLS = Object.freeze({ '日':'day', '夜':'night', '$日':'big', '$夜':'big', '*日':'holiday', '*夜':'holiday', '例':'rest', '休':'rest', '公休':'off', '特休':'leave', '家照':'noWork', '家照假':'noWork', '家庭照顧假':'noWork', '公假':'noWork', '身調假':'noWork', '身心調適假':'noWork', '選舉假':'noWork', '補休':'noWork', '國慶日':'holidayOff' });
+export const SYMBOLS = Object.freeze({ '日':'day', '夜':'night', '$日':'big', '$夜':'big', '*日':'holiday', '*夜':'holiday', '例':'rest', '休':'rest', '公休':'off', '特休':'leave', '家照':'noWork', '家照假':'noWork', '家庭照顧假':'noWork', '公假':'noWork', '身調假':'noWork', '身心調適假':'noWork', '選舉假':'noWork', '颱風假':'noWork', '生理假':'noWork', '補休':'noWork', '國慶日':'holidayOff' });
 const zero = () => Object.fromEntries(KEYS.map(k => [k, 0]));
 const round = n => Math.round(n * 10) / 10;
 export function hoursFor(type) {
