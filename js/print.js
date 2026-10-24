@@ -1,4 +1,4 @@
-import {REGIMES} from './rules.js';
+import {REGIMES,TYPHOON_KEYS,TYPHOON_LABELS,sumTyphoonHours} from './rules.js';
 
 export function printModel(report,index=null) {
   if(!report?.employees.length)return null;
@@ -12,7 +12,9 @@ export function printModel(report,index=null) {
     title:person?'台鐵班表・個人逐日計算明細':'台鐵班表・全體加班時數統計表',
     caption:`${report.month}｜${person?`${person.name}${person.id?`（${person.id}）`:''}・${REGIMES[person.regime]}`:`全體 ${people.length} 人`}｜單位：小時（H）`,
     status:confirmed?'依設定規則試算，只計時數。':'暫計／待核對：僅含可計算時數，請先核對下列事項。',
-    dataType:report.metadata?.['資料性質'] || '',warnings
+    dataType:report.metadata?.['資料性質'] || '',warnings,
+    typhoonPeople:report.typhoonDates?.length?people:null,
+    typhoonDates:report.typhoonDates || []
   };
 }
 
@@ -28,6 +30,16 @@ function prepare(report,index) {
   table.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));
   table.querySelectorAll('button').forEach(e=>e.replaceWith(text('span',e.textContent)));
   area.append(text('h1',model.title),text('p',model.caption),text('p',model.dataType),text('p',model.status),table);
+  if(model.typhoonPeople) {
+    const extra=document.createElement('table'),head=document.createElement('thead'),body=document.createElement('tbody'),foot=document.createElement('tfoot');
+    extra.className='print-typhoon';
+    const row=(values,tag='td')=>{const tr=document.createElement('tr');tr.append(...values.map(v=>text(tag,String(v))));return tr;};
+    head.append(row(['員工',...TYPHOON_LABELS,'颱風合計'],'th'));
+    body.append(...model.typhoonPeople.map(p=>row([p.name,...TYPHOON_KEYS.map(k=>p.typhoonTotals[k]),p.typhoonTotals.total])));
+    const total=sumTyphoonHours(model.typhoonPeople.map(p=>p.typhoonTotals));
+    foot.append(row(['合計',...TYPHOON_KEYS.map(k=>total[k]),total.total]));extra.append(head,body,foot);
+    area.append(text('h2','颱風假出勤時數（獨立統計）'),text('p',`${model.typhoonDates.join('、')}；以上一般時數不含本表。${model.status}`),extra);
+  }
   if(model.warnings.length) {
     const list=document.createElement('ul');
     list.append(...model.warnings.map(w=>text('li',w)));
