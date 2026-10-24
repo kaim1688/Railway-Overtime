@@ -156,10 +156,10 @@ function renderTyphoon(report) {
   $('typhoon-caption').textContent=`${report.typhoonDates.join('、')} · ${report.confirmed?'颱風出勤合計':'颱風出勤暫計'} ${fmt(report.typhoonTotals.total)} H · 不併入上方一般／國定時數`;
   $('typhoon-summary-body').replaceChildren(...report.employees.map(p=>{
     const tr=document.createElement('tr');
-    for(const value of [p.name,REGIMES[p.regime],...TYPHOON_KEYS.map(k=>fmt(p.typhoonTotals[k])),fmt(p.typhoonTotals.total),...(report.confirmed?[]:[p.confirmed?'':'需核對／暫計'])])tr.append(node('td',value));
+    for(const value of [p.name,...TYPHOON_KEYS.map(k=>fmt(p.typhoonTotals[k])),fmt(p.typhoonTotals.total),...(report.confirmed?[]:[p.confirmed?'':'需核對／暫計'])])tr.append(node('td',value));
     return tr;
   }));
-  const total=document.createElement('tr');total.append(node('th','全體合計'),node('td',''));
+  const total=document.createElement('tr');total.append(node('th','全體合計'));
   for(const value of [...TYPHOON_KEYS.map(k=>fmt(report.typhoonTotals[k])),fmt(report.typhoonTotals.total),...(report.confirmed?[]:['暫計'])])total.append(node('td',value));
   $('typhoon-summary-total').replaceChildren(total);
   $('typhoon-daily-body').replaceChildren(...report.employees.flatMap(p=>p.detail.filter(r=>r.isTyphoonDate).map(r=>{

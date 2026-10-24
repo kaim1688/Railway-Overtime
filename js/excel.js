@@ -206,9 +206,9 @@ export function reportWorkbook(XLSX, report, metadata={}) {
   if(report.excluded?.length)append('排除人員',[['姓名','資料位置','排除原因'],...report.excluded.map(p=>[p.name,p.source,p.reason])]);
   if(report.typhoonDates?.length) {
     XLSX.utils.sheet_add_aoa(wb.Sheets['計算設定'],[['颱風出勤日期',report.typhoonDates.join('、')],['颱風出勤規則',TYPHOON_RULE],['總計範圍','統計總表及每日明細的一般時數不含颱風出勤；颱風時數另列最後工作表。']],{origin:-1});
-    append('颱風假出勤',[['結算年月','姓名','員工編號','班制',...report.typhoonDates.map(d=>`${d} 原班別`),...TYPHOON_LABELS,'颱風出勤合計','需核對事項','逐日依據／資料位置'],
-      ...report.employees.map(p=>[report.month,p.name,p.id,REGIMES[p.regime],...report.typhoonDates.map(d=>p.detail.find(r=>r.date===d)?.symbol || '空白'),...TYPHOON_KEYS.map(k=>p.typhoonTotals[k]),p.typhoonTotals.total,p.confirmed?'':'需核對／暫計',p.detail.filter(r=>r.isTyphoonDate).map(r=>`${r.date}：${TYPHOON_KEYS.map(k=>r.typhoonHours[k]).join('／')}H；${r.note}；${r.source || '無來源位置'}${r.issues.length?'；'+r.issues.join('；'):''}`).join('\n')]),
-      [report.month,'全體合計','','',...report.typhoonDates.map(()=>''),...TYPHOON_KEYS.map(k=>report.typhoonTotals[k]),report.typhoonTotals.total,report.confirmed?'':'需核對／暫計','獨立計算，不併入一般總計或國定時數']]);
+    append('颱風假出勤',[['結算年月','姓名','員工編號',...report.typhoonDates.map(d=>`${d} 原班別`),...TYPHOON_LABELS,'颱風出勤合計','需核對事項','逐日依據／資料位置'],
+      ...report.employees.map(p=>[report.month,p.name,p.id,...report.typhoonDates.map(d=>p.detail.find(r=>r.date===d)?.symbol || '空白'),...TYPHOON_KEYS.map(k=>p.typhoonTotals[k]),p.typhoonTotals.total,p.confirmed?'':'需核對／暫計',p.detail.filter(r=>r.isTyphoonDate).map(r=>`${r.date}：${TYPHOON_KEYS.map(k=>r.typhoonHours[k]).join('／')}H；${r.note}；${r.source || '無來源位置'}${r.issues.length?'；'+r.issues.join('；'):''}`).join('\n')]),
+      [report.month,'全體合計','',...report.typhoonDates.map(()=>''),...TYPHOON_KEYS.map(k=>report.typhoonTotals[k]),report.typhoonTotals.total,report.confirmed?'':'需核對／暫計','獨立計算，不併入一般總計或國定時數']]);
   }
   return wb;
 }
