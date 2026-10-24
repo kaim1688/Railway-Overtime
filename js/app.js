@@ -1,4 +1,4 @@
-import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE } from './rules.js';
+import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS } from './rules.js';
 import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth } from './excel.js';
 import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js';
 import { sampleRows, templateRows } from './sample.js';
@@ -13,7 +13,7 @@ const fmt=n=>Number(n.toFixed(1)).toString();
 const specialDateNote=month=>STARRED_ATTENDANCE_DATE.startsWith(month || 'none')?'；11/28 星號出勤另依特例':'';
 function node(tag,value,className) {const e=document.createElement(tag);e.textContent=value;if(className)e.className=className;return e;}
 function message(value,error=false) {$('message').replaceChildren(...(value?[node('p',value,`feedback${error?' error':''}`)]:[]));}
-function invalidate() {$('setup-fold').open=true;$('setup-caption').textContent='選擇或調整班表設定';state.report=null;clearPrint();$('print-summary').disabled=true;$('print-employee').disabled=true;$('export').disabled=true;$('report').hidden=true;$('empty').hidden=false;$('result-caption').textContent='等待完整的班表與日期設定。';message('');}
+function invalidate() {$('setup-fold').open=true;$('setup-caption').textContent='選擇或調整班表設定';state.report=null;$('typhoon-section').hidden=true;clearPrint();$('print-summary').disabled=true;$('print-employee').disabled=true;$('export').disabled=true;$('report').hidden=true;$('empty').hidden=false;$('result-caption').textContent='等待完整的班表與日期設定。';message('');}
 function refreshDates() {
   const month=$('month').value;
   for(const prefix of ['', 'prev-']) {
@@ -139,7 +139,10 @@ function renderReport() {
   const issues=[...report.issues.map(m=>({name:'全體',date:'',message:m})),...report.employees.flatMap(p=>p.issues.map(i=>({...i,name:p.name})))];
   $('metric-people').textContent=String(report.employees.length);
   $('metric-hours').textContent=fmt(report.totals.total);
-  $('metric-hours-label').textContent=report.confirmed?'本月總時數':'本月暫計時數';
+  $('metric-hours-label').textContent=report.typhoonDates.length?(report.confirmed?'一般加班時數':'一般暫計時數'):(report.confirmed?'本月總時數':'本月暫計時數');
+  $('typhoon-section').hidden=!report.typhoonDates.length;
+  $('summary-scope').textContent=report.typhoonDates.length?'本表與逐日明細的一般時數不含颱風出勤；請見頁面最後的獨立表。':'';
+  if(report.typhoonDates.length)renderTyphoon(report);
   $('metric-issues').textContent=String(issues.length);
   $('metric-check').classList.toggle('pending',issues.length>0);
   $('metric-check-note').textContent=issues.length?'請查看下方待核對事項':'未偵測到資料異常';
@@ -148,15 +151,32 @@ function renderReport() {
   $('issues').replaceChildren(...(issues.length?issues.map(i=>{const li=document.createElement('li');li.append(node('strong',`${i.name} ${i.date}　`),document.createTextNode(i.message));return li;}):[]));
   $('employee').replaceChildren(...report.employees.map((p,i)=>{const o=node('option',p.name+' · '+REGIMES[p.regime]+(p.id?` · ${p.id}`:''));o.value=String(i);return o;}));renderDaily();
 }
+function renderTyphoon(report) {
+  $('typhoon-status-heading').hidden=report.confirmed;
+  $('typhoon-caption').textContent=`${report.typhoonDates.join('、')} · ${report.confirmed?'颱風出勤合計':'颱風出勤暫計'} ${fmt(report.typhoonTotals.total)} H · 不併入上方一般／國定時數`;
+  $('typhoon-summary-body').replaceChildren(...report.employees.map(p=>{
+    const tr=document.createElement('tr');
+    for(const value of [p.name,REGIMES[p.regime],...TYPHOON_KEYS.map(k=>fmt(p.typhoonTotals[k])),fmt(p.typhoonTotals.total),...(report.confirmed?[]:[p.confirmed?'':'需核對／暫計'])])tr.append(node('td',value));
+    return tr;
+  }));
+  const total=document.createElement('tr');total.append(node('th','全體合計'),node('td',''));
+  for(const value of [...TYPHOON_KEYS.map(k=>fmt(report.typhoonTotals[k])),fmt(report.typhoonTotals.total),...(report.confirmed?[]:['暫計'])])total.append(node('td',value));
+  $('typhoon-summary-total').replaceChildren(total);
+  $('typhoon-daily-body').replaceChildren(...report.employees.flatMap(p=>p.detail.filter(r=>r.isTyphoonDate).map(r=>{
+    const tr=document.createElement('tr');
+    for(const value of [p.name,r.date,r.symbol || '空白',...TYPHOON_KEYS.map(k=>fmt(r.typhoonHours[k])),fmt(TYPHOON_KEYS.reduce((n,k)=>n+r.typhoonHours[k],0))])tr.append(node('td',value));
+    const note=node('td',r.note || '待核對');if(r.source)note.append(node('span',r.source,'source'));if(r.issues.length)note.append(node('p',r.issues.join('；'),'error-text'));tr.append(note);return tr;
+  })));
+}
 function renderDaily() {
   const p=state.report?.employees[Number($('employee').value)];if(!p)return;
   clearPrint();$('print-employee').disabled=false;
-  $('daily-context').textContent=`${state.report.month} · ${p.name} · ${p.confirmed&&!state.report.issues.length?'總計':'暫計'} ${fmt(p.totals.total)} H`;
+  $('daily-context').textContent=`${state.report.month} · ${p.name} · ${p.confirmed&&!state.report.issues.length?(state.report.typhoonDates.length?'一般總計':'總計'):'暫計'} ${fmt(p.totals.total)} H`;
   document.querySelectorAll('#summary tbody tr').forEach((row,i)=>row.classList.toggle('selected',i===Number($('employee').value)));
   const body=document.querySelector('#daily tbody');body.replaceChildren();
   for(const r of p.detail) {
     const tr=document.createElement('tr');if(r.isHoliday || r.isSpecialAttendance)tr.className='holiday';const h=r.hours;
-    for(const value of [r.date+(r.isSpecialAttendance?' 出勤特例':r.isHoliday?' 國定':''),r.symbol || '空白',fmt(h.ordinary),fmt(h.ordinary34),[h.rest02,h.rest38,h.rest912].map(fmt).join(' / '),[h.holiday08,h.holiday910,h.holiday1112].map(fmt).join(' / '),fmt(h.holidayRest),fmt(KEYS.reduce((n,k)=>n+h[k],0))])tr.append(node('td',value));
+    for(const value of [r.date+(r.isTyphoonDate?' 颱風':r.isSpecialAttendance?' 出勤特例':r.isHoliday?' 國定':''),r.symbol || '空白',fmt(h.ordinary),fmt(h.ordinary34),[h.rest02,h.rest38,h.rest912].map(fmt).join(' / '),[h.holiday08,h.holiday910,h.holiday1112].map(fmt).join(' / '),fmt(h.holidayRest),fmt(KEYS.reduce((n,k)=>n+h[k],0))])tr.append(node('td',value));
     const note=document.createElement('td');note.append(node('span',r.note || '待核對'));
     if(r.source)note.append(node('span',r.source,'source'));
     if(r.transfer)note.append(node('span',r.transfer,'source'));
