@@ -10,7 +10,7 @@ const mobile=window.matchMedia('(max-width:720px)');
 mobile.addEventListener('change',()=>{if(!mobile.matches)$('setup-fold').open=true;});
 const state={current:null,previous:null,report:null,demo:false,busy:false,calendars:defaultCalendars(),dateDrafts:new Set()};
 const fmt=n=>Number(n.toFixed(1)).toString();
-const specialDateNote=month=>STARRED_ATTENDANCE_DATE.startsWith(month || 'none')?'；11/28 星號出勤另依特例':'';
+const specialDateNote=month=>STARRED_ATTENDANCE_DATE.startsWith(month || 'none')?'；11/28 出勤與三班例休另依特例':'';
 function node(tag,value,className) {const e=document.createElement(tag);e.textContent=value;if(className)e.className=className;return e;}
 function message(value,error=false) {$('message').replaceChildren(...(value?[node('p',value,`feedback${error?' error':''}`)]:[]));}
 function invalidate() {$('setup-fold').open=true;$('setup-caption').textContent='選擇或調整班表設定';state.report=null;$('typhoon-section').hidden=true;clearPrint();$('print-summary').disabled=true;$('print-employee').disabled=true;$('export').disabled=true;$('report').hidden=true;$('empty').hidden=false;$('result-caption').textContent='等待完整的班表與日期設定。';message('');}
