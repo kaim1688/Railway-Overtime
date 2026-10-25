@@ -1,6 +1,6 @@
-import {calculate,datesInMonth,previousMonth,validDate,DEFAULT_HOLIDAYS} from './rules.js?v=80a6cc0946ed';
-import {parseRoster,combineEmployees,rosterBlocks} from './excel.js?v=80a6cc0946ed';
-import {CALENDAR_VERSION,CALENDAR_SOURCES} from './holidays.js?v=80a6cc0946ed';
+import {calculate,datesInMonth,previousMonth,validDate,DEFAULT_HOLIDAYS} from './rules.js?v=8c8b43f85d87';
+import {parseRoster,combineEmployees,rosterBlocks} from './excel.js?v=8c8b43f85d87';
+import {CALENDAR_VERSION,CALENDAR_SOURCES} from './holidays.js?v=8c8b43f85d87';
 
 export function defaultCalendars() {
   return Object.fromEntries(Object.entries(DEFAULT_HOLIDAYS).map(([month,dates])=>[month,{dates:[...dates],
