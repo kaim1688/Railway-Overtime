@@ -1,4 +1,4 @@
-import { datesInMonth } from './rules.js';
+import { datesInMonth } from './rules.js?v=80a6cc0946ed';
 export function templateRows(month) {
   return [['姓名','員工編號',...datesInMonth(month)],['請填員工姓名','',...datesInMonth(month).map(()=>'')]];
 }

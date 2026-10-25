@@ -1,9 +1,9 @@
-import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS } from './rules.js';
-import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth } from './excel.js';
-import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js';
-import { sampleRows, templateRows } from './sample.js';
-import {initPrinting,clearPrint} from './print.js';
-import {initCatGreeting} from './cat.js';
+import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS } from './rules.js?v=80a6cc0946ed';
+import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth } from './excel.js?v=80a6cc0946ed';
+import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=80a6cc0946ed';
+import { sampleRows, templateRows } from './sample.js?v=80a6cc0946ed';
+import {initPrinting,clearPrint} from './print.js?v=80a6cc0946ed';
+import {initCatGreeting} from './cat.js?v=80a6cc0946ed';
 const $=id=>document.getElementById(id);
 const XLSX=globalThis.XLSX;
 const mobile=window.matchMedia('(max-width:720px)');
