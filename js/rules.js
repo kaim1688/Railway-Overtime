@@ -1,4 +1,4 @@
-export const RULE_VERSION = '使用者規則草稿 v1.9（2026-10-25）/ MVP 0.3.4';
+export const RULE_VERSION = '使用者規則草稿 v1.9（2026-10-25）/ MVP 0.3.5';
 export const TYPHOON_DATES = ['2026-10-23','2026-10-24'];
 export const TYPHOON_KEYS = ['typhoon08','typhoon910','typhoon1112','typhoonRest'];
 export const TYPHOON_LABELS = ['颱風出勤 0–8H','颱風出勤 9–10H','颱風出勤 11–12H','颱風例／休 0–8H'];
@@ -11,7 +11,7 @@ export function sumTyphoonHours(items) {
 }
 export const STARRED_ATTENDANCE_DATE = '2026-11-28';
 export const STARRED_ATTENDANCE_RULE = '2026/11/28 使用者確認：三班制 *日／*夜、常日班帶 * 替日班計國定出勤 8／2／1H；帶 * 的已知 8 小時班計國定出勤 8H，不另加普通延時，三班制例／休計國定例／休8H；常日例休及其他未出勤0H，不觸發公休轉移。';
-export { DEFAULT_HOLIDAYS } from './holidays.js?v=80a6cc0946ed';
+export { DEFAULT_HOLIDAYS } from './holidays.js?v=8c8b43f85d87';
 export const REGIMES = {threeShift:'三班制', regular:'常日班替班'};
 export const RELIEF_SHIFTS = ['日轍','日剪','日售','日運','日調','日號','日售領','夜轍','夜剪','夜售','夜運','夜調'];
 export const EIGHT_HOUR_SHIFTS = ['晚常剪','A售','B售','晚A售','早B售','A剪','B剪','早B剪','S','晚S','晚AS','早BS'];

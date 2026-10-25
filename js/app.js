@@ -1,9 +1,9 @@
-import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS } from './rules.js?v=80a6cc0946ed';
-import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth } from './excel.js?v=80a6cc0946ed';
-import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=80a6cc0946ed';
-import { sampleRows, templateRows } from './sample.js?v=80a6cc0946ed';
-import {initPrinting,clearPrint} from './print.js?v=80a6cc0946ed';
-import {initCatGreeting} from './cat.js?v=80a6cc0946ed';
+import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS } from './rules.js?v=8c8b43f85d87';
+import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth } from './excel.js?v=8c8b43f85d87';
+import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=8c8b43f85d87';
+import { sampleRows, templateRows } from './sample.js?v=8c8b43f85d87';
+import {initPrinting,clearPrint} from './print.js?v=8c8b43f85d87';
+import {initCatEffect} from './cat.js?v=8c8b43f85d87';
 const $=id=>document.getElementById(id);
 const XLSX=globalThis.XLSX;
 const mobile=window.matchMedia('(max-width:720px)');
@@ -215,7 +215,7 @@ $('sample').addEventListener('click',()=>{
 $('summary-view-toggle').addEventListener('click',()=>{
   const full=$('report').classList.toggle('full-table');$('summary-view-toggle').setAttribute('aria-pressed',String(full));$('summary-view-toggle').textContent=full?'員工摘要':'完整表格';
 });
-initCatGreeting($('cat-greeting'),$('cat-message'),document.querySelector('.rail-panel'));
+initCatEffect($('cat-greeting'),document.querySelector('.rail-panel'));
 initPrinting(()=>state.report,()=>Number($('employee').value));
 refreshDates();
 if(!XLSX){message('本機 SheetJS 程式庫載入失敗，請確認 dist/vendor/xlsx.full.min.js 完整存在。',true);busy(true);}

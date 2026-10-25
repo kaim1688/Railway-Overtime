@@ -119,7 +119,7 @@ details>summary{cursor:pointer;font-size:0.928571rem;font-weight:600}#report>det
 .empty{border-style:solid;background:var(--paper);border-radius:12px;min-height:380px}
 .empty svg{stroke:var(--teal);opacity:.8}
 @media(prefers-reduced-motion:no-preference){:root[data-motion=on] button,:root[data-motion=on] #summary tbody tr{transition:background-color 150ms ease-out,border-color 150ms ease-out}}
-@media(prefers-reduced-motion:reduce){.rail-cat,.rail-cat *{animation:none!important}button,#summary tbody tr{transition:none!important}}
+@media(prefers-reduced-motion:reduce){.rail-cat,.rail-cat *{animation:none!important}:root[data-motion=on] .rail-panel[data-spark=true] .cat-button::after{opacity:1;transform:none}button,#summary tbody tr{transition:none!important}}
 @media(max-width:1000px){.dashboard{gap:10px}.metric{padding:16px}.metric strong{font-size:1.8rem}.topbar{flex-wrap:wrap}.topbar-actions{margin-left:auto}}
 @media(max-width:720px){.page-title{grid-template-columns:1fr;gap:12px;padding-bottom:16px;margin-bottom:24px}.rail-panel{display:flex;align-items:center;gap:16px;flex-direction:row-reverse}.rail-panel .version{font-size:.785714rem;flex-shrink:0}#rail-art{height:40px;min-width:0}.dashboard{grid-template-columns:1fr;gap:10px}.metric{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:16px 18px}.metric dt{align-self:center}.metric dd{margin:0;grid-column:2;grid-row:1 / 3}.metric .metric-note{grid-column:1;grid-row:2;margin:0}.topbar-actions .local-tag{display:none}.font-control{font-size:.857143rem}.topbar-actions{gap:8px}.topbar-actions button{padding-inline:10px}.title-copy p{margin-top:8px}}
 
@@ -165,7 +165,9 @@ details>summary{cursor:pointer;font-size:0.928571rem;font-weight:600}#report>det
 .cat-button{position:absolute;left:-28px;width:56px;height:48px;min-height:44px;padding:0;pointer-events:auto}
 .cat-button,.cat-button:hover:enabled,.cat-button:active:enabled,[data-theme=dark] .cat-button{background:transparent;border:0;color:var(--rail-signal)}
 .cat-button svg{width:100%;height:100%;display:block}
-.cat-message{min-height:3.3em;font-size:1rem;line-height:1.65;color:var(--teal);margin:0;text-align:right;overflow-wrap:anywhere}
+:root[data-motion=on] .cat-button::after{content:"";position:absolute;inset:-12px;border-radius:50%;pointer-events:none;opacity:0;transform:scale(.35);background:radial-gradient(circle at 50% 7%,#f3c85c 0 2px,transparent 2.8px),radial-gradient(circle at 82% 20%,#ee8d6e 0 2px,transparent 2.8px),radial-gradient(circle at 94% 50%,#79c9bd 0 2px,transparent 2.8px),radial-gradient(circle at 80% 82%,#f3c85c 0 2px,transparent 2.8px),radial-gradient(circle at 50% 94%,#ee8d6e 0 2px,transparent 2.8px),radial-gradient(circle at 18% 80%,#79c9bd 0 2px,transparent 2.8px),radial-gradient(circle at 6% 50%,#f3c85c 0 2px,transparent 2.8px),radial-gradient(circle at 20% 18%,#ee8d6e 0 2px,transparent 2.8px)}
+:root[data-motion=on] .rail-panel[data-spark=true] .cat-button::after{animation:cat-spark 850ms ease-out both}
+@keyframes cat-spark{20%{opacity:1;transform:scale(.7)}100%{opacity:0;transform:scale(1.5)}}
 .rail-panel[data-greeting=true] .rail-cat,.rail-panel:has(.cat-button:focus-visible) .rail-cat{animation-play-state:paused!important;opacity:1!important}
 .rail-panel[data-greeting=true] .cat-leg{animation-play-state:paused!important}
 @media screen{
@@ -193,7 +195,6 @@ details>summary{cursor:pointer;font-size:0.928571rem;font-weight:600}#report>det
   .rail-panel .version{font-size:max(.857143rem,12px)}
   .rail-track{margin-top:4px}
   #rail-art{height:96px}
-  .cat-message{font-size:max(1rem,14px);min-height:1.65em}
   .workspace{gap:24px}
   .setup{padding:0}
   .setup #setup-fold>summary{padding:14px 16px;position:relative;padding-right:44px}
