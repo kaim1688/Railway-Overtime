@@ -5,10 +5,10 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>台鐵班表加班時數計算器</title>
   <meta name="description" content="本機 Excel 班表核對與加班時數試算工具">
-  <script src="js/theme.js?v=8c8b43f85d87"></script>
-  <link rel="stylesheet" href="styles.css?v=8c8b43f85d87">
+  <script src="js/theme.js?v=b3fbe0184271"></script>
+  <link rel="stylesheet" href="styles.css?v=b3fbe0184271">
   <script src="vendor/xlsx.full.min.js" defer></script>
-  <script type="module" src="js/app.js?v=8c8b43f85d87"></script>
+  <script type="module" src="js/app.js?v=b3fbe0184271"></script>
 </head>
 <body>
   <header class="topbar"><a class="brand" href="./" aria-label="計算器首頁"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><rect x="7" y="3" width="18" height="22" rx="5"/><path d="M7 15h18M16 4v11M10 25l-3 5m15-5 3 5M9 28h14"/><circle cx="11" cy="20" r="1"/><circle cx="21" cy="20" r="1"/></svg><span>班表時數工作台</span></a><div class="topbar-actions"><span class="local-tag">本機處理 · 資料不外傳</span><label class="font-control" for="font-size">文字大小<select id="font-size"><option value="12">12</option><option value="13">13</option><option value="14" selected>14</option></select></label><button id="motion-toggle" type="button" aria-pressed="true">動畫：開</button><button id="theme-toggle" type="button">切換暗色</button></div></header>
@@ -74,7 +74,7 @@
         </div>
       </section>
     </div>
-    <details class="rule-note"><summary><h2>加班時數計算規則</h2></summary><div class="rule-columns"><p><strong>三班制</strong><br>普通日／夜班延時工資 0–2H：1.2H、3–4H：0H；$日／$夜為 2／6／3H；國定 *日／*夜為 8／2／1H，例／休 8H。公休回溯最近普通日班轉移。</p><p><strong>常日班替班</strong><br>日／夜轍、剪、售、運、調及日號、日售領每班延時工資 0–2H：2H、3–4H：1H，合計 3H；晚常剪、A售、B售、晚A售、早B售、A剪、B剪、早B剪、S、晚S、晚AS、早BS 平日 0H。國定帶 * 分別計 8／2／1H 或 8H，不另加 3H。8 小時班前帶 $ 計休息日 2／6H。</p><p><strong>常日班休假與核對</strong><br>國定例（例假）／休／周休（週休）、國慶日／光復節放假及喪假未出勤為 0H。站長、兩位總務及段替班不計。國定8小時班未標 *，同月之後明確補休該日則國定加班0H，明細保留對應日期。缺少補休依據、重複或日期不符仍待核對；不套用三班制公休轉移。</p><p><strong>未出勤假別：當日加班 0H</strong><br>身心調適假（身調假）、選舉假、颱風假、生理假、家庭照顧假（家照假／家照）、特休、公休、補休，以及公假。常日班喪假亦為 0H。三班制國定假日遇公休仍依轉移規則處理；國定特休為 0H 且不扣特休額度。</p><p><strong>2026/11/28 出勤與例休特例</strong><br>依使用者確認：三班制 *日／*夜、常日班帶 * 替日班計國定出勤 8＋2＋1H；常日班帶 * 的已知 8 小時班計國定出勤 8H，不另加普通 1.2H 或 3H。選舉假未出勤 0H；不將當天列為一般國定假日，三班制例／休計國定例／休 8H，常日例休 0H，公休不轉移。未確認的星號班別仍提示核對。</p></div></details>
+    <details class="rule-note"><summary><h2>加班時數計算規則</h2></summary><div class="rule-columns"><p><strong>三班制</strong><br>普通日／夜班延時工資 0–2H：1.2H、3–4H：0H；$日／$夜為 2／6／3H；國定 *日／*夜為 8／2／1H，例／休 8H。公休回溯最近普通日班轉移。</p><p><strong>常日班替班</strong><br>日／夜轍、剪、售、運、調及日號、日售領每班延時工資 0–2H：2H、3–4H：1H，合計 3H；晚常剪、晚常售、A售、B售、晚A售、早B售、A剪、B剪、晚A剪、早B剪、S、晚S、晚AS、早BS 平日 0H。國定帶 * 分別計 8／2／1H 或 8H，不另加 3H。8 小時班前帶 $ 計休息日 2／6H。</p><p><strong>常日班休假與核對</strong><br>國定例（例假）／休／周休（週休）、國慶日／光復節放假及喪假未出勤為 0H。站長、兩位總務及段替班不計。國定8小時班未標 *，同月之後明確補休該日則國定加班0H，明細保留對應日期。缺少補休依據、重複或日期不符仍待核對；不套用三班制公休轉移。</p><p><strong>未出勤假別：當日加班 0H</strong><br>身心調適假（身調假）、選舉假、颱風假、生理假、家庭照顧假（家照假／家照）、特休、公休、補休，以及公假。常日班喪假亦為 0H。三班制國定假日遇公休仍依轉移規則處理；國定特休為 0H 且不扣特休額度。</p><p><strong>2026/11/28 出勤與例休特例</strong><br>依使用者確認：三班制 *日／*夜、常日班帶 * 替日班計國定出勤 8＋2＋1H；常日班帶 * 的已知 8 小時班計國定出勤 8H，不另加普通 1.2H 或 3H。選舉假未出勤 0H；不將當天列為一般國定假日，三班制例／休計國定例／休 8H，常日例休 0H，公休不轉移。未確認的星號班別仍提示核對。</p></div></details>
     <section id="typhoon-section" class="typhoon-section" hidden aria-labelledby="typhoon-title">
       <h2 id="typhoon-title">颱風假出勤時數（獨立統計）</h2><p id="typhoon-caption" class="help"></p>
       <p class="help">僅 2026/10/23、10/24：依日期及已知班別判斷出勤，取消當天原延時與一般時數。三班制例／休另計 8H；常日例休及寫「颱風假」等未出勤為 0H；未知或衝突列待核對。</p>
