@@ -1,9 +1,9 @@
-import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS } from './rules.js?v=8c8b43f85d87';
-import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth } from './excel.js?v=8c8b43f85d87';
-import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=8c8b43f85d87';
-import { sampleRows, templateRows } from './sample.js?v=8c8b43f85d87';
-import {initPrinting,clearPrint} from './print.js?v=8c8b43f85d87';
-import {initCatEffect} from './cat.js?v=8c8b43f85d87';
+import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS } from './rules.js?v=b3fbe0184271';
+import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth } from './excel.js?v=b3fbe0184271';
+import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=b3fbe0184271';
+import { sampleRows, templateRows } from './sample.js?v=b3fbe0184271';
+import {initPrinting,clearPrint} from './print.js?v=b3fbe0184271';
+import {initCatEffect} from './cat.js?v=b3fbe0184271';
 const $=id=>document.getElementById(id);
 const XLSX=globalThis.XLSX;
 const mobile=window.matchMedia('(max-width:720px)');
