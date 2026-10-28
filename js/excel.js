@@ -1,4 +1,4 @@
-import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE, TYPHOON_KEYS, TYPHOON_LABELS, TYPHOON_RULE } from './rules.js?v=b3fbe0184271';
+import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE, TYPHOON_KEYS, TYPHOON_LABELS, TYPHOON_RULE } from './rules.js?v=599b6966f141';
 
 const text = v => String(v ?? '').trim();
 const NAME = ['姓名','員工姓名','員工'];
@@ -61,6 +61,25 @@ export function rosterBlocks(XLSX,workbook,sheetName) {
   const {ws,rows}=sheetRows(XLSX,workbook,sheetName);
   return findRosterBlocks(rows,ws);
 }
+function nameHeaders(XLSX, rows, month, date1904) {
+  const candidates=[];
+  for (let r=0;r<Math.min(rows.length,30);r++) {
+    const labels=rows[r].map(text), nameCol=labels.findIndex(v=>NAME.includes(v));
+    if (nameCol<0) continue;
+    const idCol=labels.findIndex(v=>ID.includes(v)), dateCol=labels.findIndex(v=>DATE.includes(v)), shiftCol=labels.findIndex(v=>SHIFT.includes(v));
+    if (dateCol>=0 && shiftCol>=0) { candidates.push({layout:'long',r,nameCol,idCol,dateCol,shiftCol}); continue; }
+    for (let dr=r;dr<=Math.min(r+2,rows.length-1);dr++) {
+      const columns=rows[dr].map((v,c)=>({c,date:dateValue(v,month,XLSX,date1904)})).filter(x=>x.c!==nameCol && x.c!==idCol && x.date);
+      if (columns.length>=2) { candidates.push({layout:'wide',r:dr,nameCol,idCol,columns}); break; }
+    }
+  }
+  return candidates;
+}
+export function hasRosterLayout(XLSX,workbook,sheetName) {
+  if (!workbook.Sheets[sheetName]?.['!ref']) return false;
+  const {ws,rows}=sheetRows(XLSX,workbook,sheetName);
+  return nameHeaders(XLSX,rows,'2000-01',!!workbook.Workbook?.WBProps?.date1904).length>0 || findRosterBlocks(rows,ws).length>0;
+}
 export function rosterMonth(XLSX,workbook,sheetName) {
   const {ws,rows}=sheetRows(XLSX,workbook,sheetName), months=new Set();
   const add=value=>{if(validDate(value+'-01'))months.add(value);};
@@ -84,18 +103,9 @@ export function parseSheet(XLSX, workbook, sheetName, month, blockId='', {regime
   if(!Object.hasOwn(REGIMES,regime))throw new Error('請選擇有效班制。');
   datesInMonth(month);
   const {ws,rows}=sheetRows(XLSX,workbook,sheetName);
-  const issues=[], candidates=[];
+  const issues=[];
   const date1904=!!workbook.Workbook?.WBProps?.date1904;
-  for (let r=0;r<Math.min(rows.length,30);r++) {
-    const labels=rows[r].map(text), nameCol=labels.findIndex(v=>NAME.includes(v));
-    if (nameCol<0) continue;
-    const idCol=labels.findIndex(v=>ID.includes(v)), dateCol=labels.findIndex(v=>DATE.includes(v)), shiftCol=labels.findIndex(v=>SHIFT.includes(v));
-    if (dateCol>=0 && shiftCol>=0) { candidates.push({layout:'long',r,nameCol,idCol,dateCol,shiftCol}); continue; }
-    for (let dr=r;dr<=Math.min(r+2,rows.length-1);dr++) {
-      const columns=rows[dr].map((v,c)=>({c,date:dateValue(v,month,XLSX,date1904)})).filter(x=>x.c!==nameCol && x.c!==idCol && x.date);
-      if (columns.length>=2) { candidates.push({layout:'wide',r:dr,nameCol,idCol,columns}); break; }
-    }
-  }
+  const candidates=nameHeaders(XLSX,rows,month,date1904);
   const blocks=candidates.length ? [] : findRosterBlocks(rows,ws);
   if(blocks.length && !blockId)throw new Error('請選擇班表區段，並確認適用班制。');
   const schema=blocks.length ? blocks.find(b=>b.id===blockId) : candidates[0];

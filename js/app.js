@@ -1,9 +1,10 @@
-import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS } from './rules.js?v=b3fbe0184271';
-import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth } from './excel.js?v=b3fbe0184271';
-import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=b3fbe0184271';
-import { sampleRows, templateRows } from './sample.js?v=b3fbe0184271';
-import {initPrinting,clearPrint} from './print.js?v=b3fbe0184271';
-import {initCatEffect} from './cat.js?v=b3fbe0184271';
+import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS } from './rules.js?v=599b6966f141';
+import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth, hasRosterLayout } from './excel.js?v=599b6966f141';
+import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=599b6966f141';
+import { sampleRows, templateRows } from './sample.js?v=599b6966f141';
+import {initPrinting,clearPrint} from './print.js?v=599b6966f141';
+import {initCatEffect} from './cat.js?v=599b6966f141';
+import {initLanding} from './landing.js?v=599b6966f141';
 const $=id=>document.getElementById(id);
 const XLSX=globalThis.XLSX;
 const mobile=window.matchMedia('(max-width:720px)');
@@ -61,13 +62,23 @@ async function importFile(event,which) {
   try {
     if(!/\.xlsx$/i.test(file.name))throw new Error('請匯入 .xlsx 格式。');
     if(file.size>20*1024*1024)throw new Error('檔案超過 20MB，請另存所需工作表。');
-    setBook(which,readWorkbook(XLSX,await file.arrayBuffer()),file.name);
+    const workbook=readWorkbook(XLSX,await file.arrayBuffer());
+    if(which==='current') {
+      let layoutError;
+      const found=workbook.SheetNames.some(name=>{
+        try{return hasRosterLayout(XLSX,workbook,name);}
+        catch(error){layoutError ??= error;return false;}
+      });
+      if(!found)throw layoutError || new Error('找不到可辨識的班表。請改選含姓名、日期與班別的班表，或使用空白範本。');
+    }
+    setBook(which,workbook,file.name);
     run();
   } catch(error) {
     state[which]=null;
     const select=$(which==='current'?'sheet':'prev-sheet');select.replaceChildren(node('option','讀取失敗，請重新選檔'));
     if(which==='current')$('file-state').textContent='本月檔案讀取失敗。';
     message(`無法匯入：${error.message}`,true);
+    return error.message;
   } finally {busy(false);event.target.value='';}
 }
 function setDates(prefix,empty=false) {
@@ -219,3 +230,8 @@ initCatEffect($('cat-greeting'),document.querySelector('.rail-panel'));
 initPrinting(()=>state.report,()=>Number($('employee').value));
 refreshDates();
 if(!XLSX){message('本機 SheetJS 程式庫載入失敗，請確認 dist/vendor/xlsx.full.min.js 完整存在。',true);busy(true);}
+initLanding({
+  importFile:file=>importFile({target:{files:[file],value:''}},'current'),
+  loadSample:()=>{$('sample').click();return state.report ? null : $('message').textContent;},
+  hasReport:()=>Boolean(state.report)
+});

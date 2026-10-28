@@ -4,11 +4,15 @@
   const sizeKey = 'railway-overtime-font-size';
   const sizes = ['12', '13', '14'];
   let fontSize = '14';
-  let theme = 'light';
+  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+  let theme = systemTheme.matches ? 'dark' : 'light';
+  let chosenTheme = false;
   try {
-    if (localStorage.getItem(key) === 'dark') theme = 'dark';
+    const saved = localStorage.getItem(key);
+    if (saved === 'dark' || saved === 'light') { theme = saved; chosenTheme = true; }
   } catch { /* Theme switching also works when browser storage is unavailable. */ }
   root.dataset.theme = theme;
+  root.dataset.screen = 'landing';
   try {
     const saved = localStorage.getItem(sizeKey);
     if (sizes.includes(saved)) fontSize = saved;
@@ -55,7 +59,14 @@
     const button = document.getElementById('theme-toggle');
     const updateLabel = () => { button.textContent = theme === 'dark' ? '切換淺色' : '切換暗色'; };
     updateLabel();
+    systemTheme.addEventListener('change', () => {
+      if (chosenTheme) return;
+      theme = systemTheme.matches ? 'dark' : 'light';
+      root.dataset.theme = theme;
+      updateLabel();
+    });
     button.addEventListener('click', () => {
+      chosenTheme = true;
       theme = theme === 'dark' ? 'light' : 'dark';
       root.dataset.theme = theme;
       updateLabel();
