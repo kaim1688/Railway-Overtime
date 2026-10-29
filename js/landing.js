@@ -44,6 +44,11 @@ export function initLanding({importFile, loadSample, hasReport}) {
   new MutationObserver(syncAppearance).observe(appearance,{attributes:true,attributeFilter:['data-theme','data-motion']});
   document.addEventListener('visibilitychange',pauseMotion);
   syncAppearance();
+  // Enable transitions only after the shadow stylesheet's initial theme has painted.
+  const sceneStyles = root.querySelector('link[rel="stylesheet"]');
+  const enableTransitions = () => requestAnimationFrame(()=>requestAnimationFrame(()=>page.classList.add('scene-ready')));
+  if (sceneStyles.sheet) enableTransitions();
+  else sceneStyles.addEventListener('load',enableTransitions,{once:true});
   $('theme').addEventListener('click',()=>document.getElementById('theme-toggle').click());
   $('motion').addEventListener('click',()=>document.getElementById('motion-toggle').click());
 
@@ -72,16 +77,17 @@ export function initLanding({importFile, loadSample, hasReport}) {
   async function process(file, sample=false) {
     if (busy || (!file && !sample)) return;
     busy = true;
+    clearOffering();
     page.classList.remove('confused');
     presentation = new AbortController();
     const signal = presentation.signal;
     if (appearance.dataset.motion !== 'on') presentation.abort();
     const source = $('dropzone').getBoundingClientRect();
-    const destination = root.querySelector('.cat').getBoundingClientRect();
+    const destination = root.querySelector('.receiving-tray').getBoundingClientRect();
     const sheet = $('handoff-file');
     for (const [name,value] of Object.entries({
       'from-x':source.left+source.width/2-18, 'from-y':source.top+source.height/2-22,
-      'to-x':destination.left+destination.width*.65-18, 'to-y':destination.top+destination.height*.65-22
+      'to-x':destination.left+destination.width/2-18, 'to-y':destination.top-22
     })) sheet.style.setProperty('--'+name,value+'px');
     $('ready').hidden = true;
     $('working').hidden = false;
@@ -146,12 +152,25 @@ export function initLanding({importFile, loadSample, hasReport}) {
   $('demo').addEventListener('click',()=>process(null,true));
   let depth = 0;
   const drop = $('dropzone');
+  function offerFile(active) {
+    drop.classList.toggle('drag-over', active);
+    page.classList.toggle('offering', active);
+    if (!busy && $('error').hidden) $('bubble').textContent = active ? '放這裡，我接住！' : '喵，今天也辛苦了。';
+  }
+  function clearOffering() { depth = 0; offerFile(false); }
   host.addEventListener('dragover',e=>e.preventDefault());
-  host.addEventListener('drop',e=>e.preventDefault());
-  drop.addEventListener('dragenter',e=>{e.preventDefault();depth++;if(!busy)drop.classList.add('drag-over');});
-  drop.addEventListener('dragleave',()=>{depth=Math.max(0,depth-1);if(!depth)drop.classList.remove('drag-over');});
+  host.addEventListener('drop',e=>{e.preventDefault();clearOffering();});
+  window.addEventListener('dragend',clearOffering);
+  window.addEventListener('blur',clearOffering);
+  drop.addEventListener('dragenter',e=>{
+    e.preventDefault();
+    if (busy || !Array.from(e.dataTransfer?.types || []).includes('Files')) return;
+    depth++;
+    offerFile(true);
+  });
+  drop.addEventListener('dragleave',()=>{depth=Math.max(0,depth-1);if(!depth)offerFile(false);});
   drop.addEventListener('drop',e=>{
-    e.preventDefault();depth=0;drop.classList.remove('drag-over');
+    e.preventDefault();clearOffering();
     if(busy)return;
     if(e.dataTransfer.files.length!==1){$('error').textContent='請一次放入一份 .xlsx 班表。';$('error').hidden=false;return;}
     process(e.dataTransfer.files[0]);
