@@ -1,4 +1,4 @@
-import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE, TYPHOON_KEYS, TYPHOON_LABELS, TYPHOON_RULE } from './rules.js?v=a82e81fd5d45';
+import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE, TYPHOON_KEYS, TYPHOON_LABELS, TYPHOON_RULE } from './rules.js?v=4fc579937dfc';
 
 const text = v => String(v ?? '').trim();
 const NAME = ['姓名','員工姓名','員工'];
@@ -147,9 +147,15 @@ export function parseSheet(XLSX, workbook, sheetName, month, blockId='', {regime
     const leading=rows.slice(schema.r+1,schema.r+1+excludeLeading).map(r=>text(r[schema.nameCol]));
     if(leading.some(n=>!n || n==='段替班') || new Set(leading).size!==excludeLeading)throw new Error('下方前三位姓名缺漏或重複，無法確認站長／總務排除範圍。');
   }
+  let externalSupport = false;
   for (let r=schema.r+1;r<=(schema.endRow ?? rows.length-1);r++) {
     if (!rows[r].some(v=>v!==null && text(v)!=='')) continue;
     const rawName=safe(r,schema.nameCol), name=text(rawName);
+    if (regime==='regular' && schema.layout==='wide' && name==='段替班') externalSupport = true;
+    if (externalSupport) {
+      excluded.push({name:name || `外部支援（第 ${r+1} 列，未具名）`,source:ref(r,schema.nameCol),reason:'段替班區及其後：外部支援'});
+      continue;
+    }
     if (!name || typeof rawName!=='string' || NAME.includes(name)) { issues.push(`第 ${r+1} 列姓名缺漏／不明，該列未納入，請核對是否為員工。`); continue; }
     if (/^(合計|總計|備註|說明)/.test(name)) { issues.push(`第 ${r+1} 列「${name}」可能是備註或合計，未納入，請人工核對。`); continue; }
     if(r<=schema.r+excludeLeading || (regime==='regular' && name==='段替班')) {
