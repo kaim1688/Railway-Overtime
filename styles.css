@@ -263,3 +263,14 @@ details>summary{cursor:pointer;font-size:0.928571rem;font-weight:600}#report>det
 @media screen and (max-width:720px){#typhoon-summary th:first-child,#typhoon-summary td:first-child{position:sticky;left:0;background:var(--paper);min-width:7rem;white-space:normal}#typhoon-summary{min-width:42rem}}
 
 #typhoon-summary tfoot td{background:var(--metric-paper)}
+
+.export-receipt{position:fixed;right:20px;bottom:20px;z-index:20;display:flex;align-items:center;gap:12px;width:280px;max-width:calc(100vw - 24px);padding:12px 16px;background:var(--paper);color:var(--teal);border:1px solid var(--line);border-radius:8px;pointer-events:none;font-size:14px}
+.export-receipt svg{width:116px;height:66px;flex:none}.receipt-paw{transform-box:fill-box;transform-origin:center}
+.receipt-motion .receipt-paw{animation:receipt-stamp .55s cubic-bezier(.16,1,.3,1) both}
+.receipt-motion .receipt-seal{animation:receipt-mark .55s steps(1,end) both}
+@keyframes receipt-stamp{0%{translate:0 -12px;rotate:-8deg}55%{translate:0 12px;rotate:0deg}100%{translate:0 0;rotate:0deg}}
+@keyframes receipt-mark{0%,50%{opacity:0}51%,100%{opacity:1}}
+:root[data-motion="off"] .export-receipt *{animation:none!important}
+@media(prefers-reduced-motion:reduce){.export-receipt *{animation:none!important}}
+@media(max-width:720px){.export-receipt{right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px))}}
+@media print{.export-receipt{display:none!important}}

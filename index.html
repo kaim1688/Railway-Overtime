@@ -5,14 +5,14 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>台鐵班表加班時數計算器</title>
   <meta name="description" content="本機 Excel 班表核對與加班時數試算工具">
-  <script src="js/theme.js?v=473940e73b6e"></script>
-  <link rel="stylesheet" href="styles.css?v=473940e73b6e">
+  <script src="js/theme.js?v=63df9a26bb9e"></script>
+  <link rel="stylesheet" href="styles.css?v=63df9a26bb9e">
   <script src="vendor/xlsx.full.min.js" defer></script>
-  <script type="module" src="js/app.js?v=473940e73b6e"></script>
+  <script type="module" src="js/app.js?v=63df9a26bb9e"></script>
 </head>
 <body>
   <div id="landing"></div>
-  <template id="landing-template"><link rel="stylesheet" href="landing.css?v=473940e73b6e"><div class="landing-page">
+  <template id="landing-template"><link rel="stylesheet" href="landing.css?v=63df9a26bb9e"><div class="landing-page">
   <svg id="handoff-file" class="handoff-file" viewBox="0 0 32 40" aria-hidden="true"><path d="M3 2h19l7 7v29H3z"/><path d="M21 2v9h8M9 18h14M9 24h14M9 30h10"/></svg>
   <div class="shell">
     <header>
@@ -29,11 +29,13 @@
           <path class="mountain-back" d="M0 70h70V48h60V20h70v28h80v36h100V60h70V36h70v24h80v22h80V45h60V10h70v35h70v25h80V40h70v30h70v150H0z"/>
           <path class="mountain-front" d="M0 112h100V92h80v20h150V85h80v27h100V94h100v18h100V87h100v25h110V93h100v19h180v108H0z"/>
           <path class="platform" d="M0 142h1200v46H0z"/><path class="platform-edge" d="M0 178h1200v10H0z"/>
+          <path class="platform-joints" d="M80 146h2v29h-2zm150 0h2v29h-2zm150 0h2v29h-2zm150 0h2v29h-2zm150 0h2v29h-2zm150 0h2v29h-2zm150 0h2v29h-2zm150 0h2v29h-2z"/>
           <path class="platform-shadow" d="M0 188h1200v6H0z"/><path class="platform-stripe" d="M0 194h1200v6H0z"/>
           <path class="track-bed" d="M0 200h1200v20H0z"/>
           <path class="sleepers" d="M20 202h12v18H20zm60 0h12v18H80zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12zm60 0h12v18h-12z"/>
           <path class="rails" d="M0 205h1200v4H0zm0 11h1200v4H0z"/>
         </svg>
+        <div class="train-window" aria-hidden="true"><div class="train-runner"><svg viewBox="0 0 210 56" shape-rendering="crispEdges"><path class="train-body" d="M4 10h84v8h8v28H4zM106 10h84v8h8v28h-92z"/><path class="train-roof" d="M9 6h74v5H9zm102 0h74v5h-74z"/><path class="train-windows" d="M13 17h15v13H13zm23 0h15v13H36zm23 0h15v13H59zm55 0h15v13h-15zm23 0h15v13h-15zm23 0h15v13h-15z"/><path class="train-stripe" d="M4 34h92v5H4zm102 0h92v5h-92z"/><path class="train-wheels" d="M15 45h15v8H15zm53 0h15v8H68zm47 0h15v8h-15zm53 0h15v8h-15zM96 37h10v5H96z"/><path fill="#f0d79a" d="M190 23h8v7h-8z"/></svg></div></div>
         <div class="intro">
           <h1 id="title">班表<span>交給我。</span></h1>
           <div id="dropzone" class="dropzone">
@@ -58,19 +60,25 @@
 
         <div class="station" aria-label="像素橘貓小車站" role="group">
           <button id="pet-cat" class="pet-cat" type="button" aria-label="和橘貓打招呼" title="點橘貓，休息一下"></button>
+          <button id="station-sign" class="station-sign" type="button" aria-label="點站牌，讓小火車經過" title="點站牌，看看小火車"></button>
           <div class="bubble" id="bubble" aria-hidden="true">喵，今天也辛苦了。</div>
           <svg class="world" viewBox="40 70 440 350" shape-rendering="crispEdges" aria-hidden="true">
             <path class="sun" fill="#e7bc69" d="M382 84h48v8h8v48h-8v8h-48v-8h-8V92h8z"/>
             <path class="moon" fill="#f0d79a" d="M400 84h24v8h-16v24h24v-8h8v24h-8v8h-32v-8h-8V92h8z"/>
             <g class="stars" fill="#e5cf94"><path d="M110 109h5v5h-5zm74 65h4v4h-4zm112-64h5v5h-5zm-40 45h4v4h-4zm183 50h5v5h-5z"/></g>
             <path class="clouds" d="M74 145h24v-9h40v9h26v12H74zM279 191h22v-9h34v9h25v11h-81z"/>
+            <path class="distant-ridge" d="M40 275h35v-9h30v9h35v-12h25v12h30v7H40zm310 8h26v-9h30v9h30v-8h44v15H350z"/>
             <g fill="#57765c"><path d="M72 260h5v111h-5zM51 258h103v5H51z"/><path d="M58 270h88v55H58z"/></g>
+            <path class="awning" d="M57 252h91v6h10v6H47v-6h10z"/>
             <path fill="#f7f2e5" d="M65 277h74v41H65z"/>
             <text x="102" y="295" text-anchor="middle" fill="#405443" class="station-text">橘貓小站</text>
             <text x="102" y="310" text-anchor="middle" fill="#405443" class="station-english">CAT STATION</text>
+            <path class="sign-detail" d="M66 321h72v4H66zM73 330h4v39h-4z"/>
             <path fill="#8b7657" d="M371 367h79v10h-79zm7 10h7v40h-7zm58 0h7v40h-7z"/>
             <path fill="#b99c6c" d="M371 345h79v9h-79zm0 14h79v8h-79z"/>
             <g class="lamp"><path fill="#596951" d="M450 247h6v170h-6zm-9 0h25v5h-25z"/><path class="lamp-light" d="M443 252h21v20h-21z"/></g>
+            <path class="awning" d="M440 242h27v5h5v5h-37v-5h5z"/>
+            <path class="lamp-trim" d="M442 273h23v4h-23zm8-21h3v19h-3z"/>
             <g class="lamp-pool" fill="#f7d580"><path d="M441 280h25v12h7v12h-39v-12h7z"/><path d="M423 397h55v17h-55z"/></g>
             <path fill="#718563" d="M161 403h11v-15h7v-10h7v25h11v-14h7v14h7v15h-50zM447 402h8v-13h7v13h9v16h-24z"/>
             <g class="cat" transform="translate(194 232) scale(6)">
@@ -97,14 +105,15 @@
 
       <p class="prototype-note" id="announcement" role="status" aria-live="polite">班表僅在本機處理，不會上傳。</p>
     </main>
-    <footer><span>一份班表，一點從容。</span><span>MVP 0.4.4 · 線上版</span></footer>
+    <footer><span>一份班表，一點從容。</span><span>MVP 0.4.5 · 線上版</span></footer>
   </div>
 </div></template>
   <noscript>請啟用 JavaScript，才能在本機讀取班表與計算。</noscript>
   <div id="workbench" hidden>
+  <div id="export-receipt" class="export-receipt" role="status" aria-live="polite" hidden><svg viewBox="0 0 160 90" shape-rendering="crispEdges" aria-hidden="true"><path fill="#f7f2e5" stroke="#b6aa8e" d="M87 6h62v77H87z"/><path fill="#a8bc8d" d="M97 17h42v4H97zm0 10h35v4H97z"/><g class="receipt-seal" fill="none" stroke="#ad512e" stroke-width="3"><path d="M100 43h35v27h-35zM107 56l7 7 13-13"/></g><path fill="#e6a442" d="M7 14h13v10h28V14h13v43H7z"/><path fill="#f4bf5b" d="M12 28h44v30H12z"/><path fill="#493a2b" d="M20 37h5v5h-5zm23 0h5v5h-5z"/><path fill="#fff0c7" d="M26 47h17v10H26z"/><path fill="#a95838" d="M32 47h5v4h-5z"/><g class="receipt-paw"><path fill="#e6a442" d="M47 48h43v11H47z"/><path fill="#8b7657" d="M84 32h13v23H84zM78 55h25v7H78z"/></g></svg><strong>報表已產生</strong></div>
   <header class="topbar"><a class="brand" href="./" aria-label="計算器首頁"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><rect x="7" y="3" width="18" height="22" rx="5"/><path d="M7 15h18M16 4v11M10 25l-3 5m15-5 3 5M9 28h14"/><circle cx="11" cy="20" r="1"/><circle cx="21" cy="20" r="1"/></svg><span>班表時數工作台</span></a><div class="topbar-actions"><button id="back-home" type="button">返回入口</button><span class="local-tag">本機處理 · 資料不外傳</span><label class="font-control" for="font-size">文字大小<select id="font-size"><option value="12">12</option><option value="13">13</option><option value="14" selected>14</option></select></label><button id="motion-toggle" type="button" aria-pressed="true">動畫：開</button><button id="theme-toggle" type="button">切換暗色</button></div></header>
   <main>
-    <div class="page-title"><div class="title-copy"><h1>台鐵班表加班時數計算器</h1><p>三班制與常日班替班，逐日核對每一筆時數。</p></div><div class="rail-panel"><span class="version">MVP 0.4.4 · 線上版</span><div class="rail-track"><svg id="rail-art" viewBox="0 0 640 110" preserveAspectRatio="none" aria-hidden="true" focusable="false"><g class="rail-lines"><path d="M16 38H624M16 72H624M180 72H232Q250 72 264 58L270 52Q284 38 302 38"/><circle cx="72" cy="38" r="5"/><circle cx="352" cy="38" r="5"/><circle cx="568" cy="38" r="5"/><circle cx="144" cy="72" r="4"/><circle cx="456" cy="72" r="4"/></g>
+    <div class="page-title"><div class="title-copy"><h1>台鐵班表加班時數計算器</h1><p>三班制與常日班替班，逐日核對每一筆時數。</p></div><div class="rail-panel"><span class="version">MVP 0.4.5 · 線上版</span><div class="rail-track"><svg id="rail-art" viewBox="0 0 640 110" preserveAspectRatio="none" aria-hidden="true" focusable="false"><g class="rail-lines"><path d="M16 38H624M16 72H624M180 72H232Q250 72 264 58L270 52Q284 38 302 38"/><circle cx="72" cy="38" r="5"/><circle cx="352" cy="38" r="5"/><circle cx="568" cy="38" r="5"/><circle cx="144" cy="72" r="4"/><circle cx="456" cy="72" r="4"/></g>
     </svg><div class="rail-cat"><button id="cat-greeting" class="cat-button" type="button" aria-label="讓小貓綻放彩色光點"><svg viewBox="-34 0 72 48" aria-hidden="true" focusable="false">      <g transform="translate(0 38)">
         <g class="cat-far"><g transform="translate(-8 -11)"><path class="cat-leg cat-step-back" d="M0 0L-2 9H1"/></g><g transform="translate(12 -11)"><path class="cat-leg cat-step-front" d="M0 0L-2 9H1"/></g></g>
         <g transform="translate(-15 -18)"><path class="cat-tail" d="M0 0C-14-3-14-17-9-20C-5-23-2-18-5-15"/></g>

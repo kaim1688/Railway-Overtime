@@ -64,6 +64,21 @@ h1 span { color: var(--orange); }
 .station { position: relative; min-width: 0; margin-bottom: 38px; }
 .pet-cat { position: absolute; left: 35%; top: 46%; width: 45%; height: 51%; min-width: 44px; min-height: 44px; z-index: 2; padding: 0; border: 0; background: transparent; touch-action: manipulation; }
 .pet-cat:disabled { opacity: 1; }
+.station-sign { position: absolute; left: 1%; top: 51%; width: 26%; height: 23%; min-width: 44px; min-height: 44px; z-index: 2; padding: 0; border: 0; background: transparent; touch-action: manipulation; }
+.station-sign:disabled { opacity: 1; }
+.awning { fill: var(--green); }
+.sign-detail, .lamp-trim { fill: var(--counter-edge); }
+.distant-ridge { fill: var(--back); opacity: .65; }
+.platform-joints { fill: var(--edge); opacity: .6; }
+.train-window { position: absolute; bottom: 0; left: 0; width: 100%; height: 58px; overflow: hidden; pointer-events: none; z-index: 3; }
+.train-runner { width: 100%; height: 100%; visibility: hidden; }
+.train-runner svg { display: block; width: 210px; height: 56px; }
+.train-body { fill: #ba6b3c; }.train-roof { fill: #405d47; }.train-windows { fill: #f2e7cc; }.train-stripe { fill: #efe2ae; }.train-wheels { fill: #443e30; }
+:host([data-theme="dark"]) .train-body { fill: #df9c57; }
+:host([data-theme="dark"]) .train-windows { fill: #f7d580; }
+.train-running .train-runner { visibility: visible; animation: station-pass 2s linear both; }
+.train-running .eyes { animation: none; translate: 1px 0; }
+@keyframes station-pass { from { transform: translateX(-220px); } to { transform: translateX(100%); } }
 .world { display: block; width: 100%; height: auto; overflow: hidden; }
 .bubble { position: absolute; top: 25%; left: 27%; font-size: 13px; line-height: 1.6; background: var(--surface); border: 1px solid var(--border); padding: 10px 14px; z-index: 1; max-width: 70%; }
 .bubble:after { content: ""; position: absolute; bottom: -7px; left: 24px; width: 11px; height: 11px; background: var(--surface); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); transform: rotate(45deg); }
@@ -171,6 +186,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 24px; display: flex;
   .intro { display: contents; }h1 { grid-area: title; text-align: center; font-size: 30px; margin: 0 0 18px; }
   .station { grid-area: scene; width: min(100%, 340px); margin: 0 auto 28px; }
   .landscape { position: relative; grid-area: scene; align-self: end; height: 170px; }
+  .train-window { position: relative; grid-area: scene; align-self: end; }
   .bubble { left: 26%; top: 26%; font-size: 12px; padding: 7px 10px; }
   .dropzone { grid-area: upload; width: calc(100% - 16px); max-width: 400px; margin: 18px auto 0; padding: 18px; min-height: 128px; }
   .desktop-hint, .file-icon { display: none; }.primary { min-height: 50px; }.format { margin-top: 10px; }

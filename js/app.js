@@ -1,20 +1,37 @@
-import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS } from './rules.js?v=473940e73b6e';
-import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth, hasRosterLayout } from './excel.js?v=473940e73b6e';
-import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=473940e73b6e';
-import { sampleRows, templateRows } from './sample.js?v=473940e73b6e';
-import {initPrinting,clearPrint} from './print.js?v=473940e73b6e';
-import {initCatEffect} from './cat.js?v=473940e73b6e';
-import {initLanding} from './landing.js?v=473940e73b6e';
+import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS } from './rules.js?v=63df9a26bb9e';
+import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth, hasRosterLayout } from './excel.js?v=63df9a26bb9e';
+import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=63df9a26bb9e';
+import { sampleRows, templateRows } from './sample.js?v=63df9a26bb9e';
+import {initPrinting,clearPrint} from './print.js?v=63df9a26bb9e';
+import {initCatEffect} from './cat.js?v=63df9a26bb9e';
+import {initLanding} from './landing.js?v=63df9a26bb9e';
 const $=id=>document.getElementById(id);
 const XLSX=globalThis.XLSX;
 const mobile=window.matchMedia('(max-width:720px)');
 mobile.addEventListener('change',()=>{if(!mobile.matches)$('setup-fold').open=true;});
 const state={current:null,previous:null,report:null,demo:false,busy:false,calendars:defaultCalendars(),dateDrafts:new Set()};
+let receiptTimer=null;
+function clearExportReceipt() {
+  clearTimeout(receiptTimer);receiptTimer=null;
+  $('export-receipt').hidden=true;$('export-receipt').classList.remove('receipt-motion');
+}
+function showExportReceipt() {
+  if(receiptTimer!==null)return;
+  const receipt=$('export-receipt');receipt.hidden=false;
+  receipt.classList.toggle('receipt-motion',document.documentElement.dataset.motion==='on');
+  receiptTimer=setTimeout(clearExportReceipt,1800);
+}
+new MutationObserver(()=>{
+  if(document.documentElement.dataset.screen!=='workbench')clearExportReceipt();
+  if(document.documentElement.dataset.motion!=='on')$('export-receipt').classList.remove('receipt-motion');
+}).observe(document.documentElement,{attributes:true,attributeFilter:['data-screen','data-motion']});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)clearExportReceipt();});
+document.addEventListener('keydown',event=>{if(event.key==='Escape')clearExportReceipt();});
 const fmt=n=>Number(n.toFixed(1)).toString();
 const specialDateNote=month=>STARRED_ATTENDANCE_DATE.startsWith(month || 'none')?'；11/28 出勤與三班例休另依特例':'';
 function node(tag,value,className) {const e=document.createElement(tag);e.textContent=value;if(className)e.className=className;return e;}
 function message(value,error=false) {$('message').replaceChildren(...(value?[node('p',value,`feedback${error?' error':''}`)]:[]));}
-function invalidate() {$('setup-fold').open=true;$('setup-caption').textContent='選擇或調整班表設定';state.report=null;$('typhoon-section').hidden=true;clearPrint();$('print-summary').disabled=true;$('print-employee').disabled=true;$('export').disabled=true;$('report').hidden=true;$('empty').hidden=false;$('result-caption').textContent='等待完整的班表與日期設定。';message('');}
+function invalidate() {clearExportReceipt();$('setup-fold').open=true;$('setup-caption').textContent='選擇或調整班表設定';state.report=null;$('typhoon-section').hidden=true;clearPrint();$('print-summary').disabled=true;$('print-employee').disabled=true;$('export').disabled=true;$('report').hidden=true;$('empty').hidden=false;$('result-caption').textContent='等待完整的班表與日期設定。';message('');}
 function refreshDates() {
   const month=$('month').value;
   for(const prefix of ['', 'prev-']) {
@@ -202,7 +219,7 @@ function renderDaily() {
   [...total.children].forEach((cell,index)=>{cell.dataset.label=['個人總計',...LABELS.slice(0,2),'休息日 2／6／3','國定出勤 8／2／1','國定例／休','總時數','核對狀態'][index];});
   document.querySelector('#daily tfoot').replaceChildren(total);
 }
-function saveBook(wb,name) {try {XLSX.writeFile(wb,name,{bookType:'xlsx'});}catch(e){message(`匯出失敗：${e.message}`,true);}}
+function saveBook(wb,name) {try {XLSX.writeFile(wb,name,{bookType:'xlsx'});return true;}catch(e){clearExportReceipt();message(`匯出失敗：${e.message}`,true);return false;}}
 $('file').addEventListener('change',e=>importFile(e,'current'));
 $('prev-file').addEventListener('change',e=>importFile(e,'previous'));
 $('sheet').addEventListener('change',()=>{invalidate();$('regime').value='';try{inspectCurrent();run();}catch(e){message(e.message,true);}});
@@ -216,7 +233,12 @@ for(const prefix of ['', 'prev-']) {
 }
 $('clear-prev').addEventListener('click',()=>{state.previous=null;$('prev-sheet').replaceChildren(node('option','尚未提供'));$('prev-sheet').disabled=true;state.dateDrafts.delete('prev-');run();});
 $('employee').addEventListener('change',renderDaily);
-$('export').addEventListener('click',()=>{if(state.report)saveBook(reportWorkbook(XLSX,state.report,state.report.metadata),`班表時數_${state.report.month}${state.report.confirmed?'':'_暫計'}${state.demo?'_合成範例':''}.xlsx`);});
+$('export').addEventListener('click',()=>{
+  if(!state.report)return;
+  try {
+    if(saveBook(reportWorkbook(XLSX,state.report,state.report.metadata),`班表時數_${state.report.month}${state.report.confirmed?'':'_暫計'}${state.demo?'_合成範例':''}.xlsx`))showExportReceipt();
+  }catch(e){clearExportReceipt();message(`匯出失敗：${e.message}`,true);}
+});
 $('template').addEventListener('click',()=>{try{const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(templateRows($('month').value)),'班表');saveBook(wb,`空白班表範本_${$('month').value}.xlsx`);}catch(e){message(e.message,true);}});
 $('sample').addEventListener('click',()=>{
   invalidate();state.previous=null;$('prev-sheet').replaceChildren(node('option','尚未提供'));$('prev-sheet').disabled=true;

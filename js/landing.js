@@ -23,11 +23,34 @@ export function initLanding({importFile, loadSample, hasReport}) {
   let busy = false;
   let presentation = null;
   let petTimer = null;
+  let trainTimer = null;
 
   function updatePetControl() {
     $('pet-cat').disabled = busy || !$('error').hidden || page.classList.contains('confused') || page.classList.contains('offering');
     $('pet-cat').setAttribute('aria-busy',String(petTimer !== null));
+    $('station-sign').disabled = $('pet-cat').disabled;
+    $('station-sign').setAttribute('aria-busy',String(trainTimer !== null));
   }
+  function stopTrain() {
+    if (trainTimer === null) return;
+    clearTimeout(trainTimer);trainTimer = null;
+    page.classList.remove('train-running');
+    if (!busy && $('error').hidden && !page.classList.contains('offering')) {
+      $('bubble').textContent = '喵，今天也辛苦了。';
+      $('announcement').textContent = '班表僅在本機處理，不會上傳。';
+    }
+    updatePetControl();
+  }
+  $('station-sign').addEventListener('click',()=>{
+    if ($('station-sign').disabled || trainTimer !== null) return;
+    stopPet();
+    const motion = appearance.dataset.motion === 'on' && !reduced.matches;
+    $('bubble').textContent = motion ? '喵，小火車來了！' : '喵，陪你等車。';
+    $('announcement').textContent = motion ? '小火車經過橘貓小站。' : '橘貓陪你等車。';
+    page.classList.toggle('train-running',motion);
+    trainTimer = setTimeout(stopTrain,2100);
+    updatePetControl();
+  });
   function stopPet() {
     if (petTimer === null) return;
     clearTimeout(petTimer);
@@ -41,6 +64,7 @@ export function initLanding({importFile, loadSample, hasReport}) {
   }
   $('pet-cat').addEventListener('click',()=>{
     if ($('pet-cat').disabled || petTimer !== null) return;
+    stopTrain();
     const motion = appearance.dataset.motion === 'on' && !reduced.matches;
     $('bubble').textContent = '喵，休息一下。';
     $('announcement').textContent = motion ? '橘貓伸了個懶腰。喵，休息一下。' : '喵，休息一下。';
@@ -48,7 +72,7 @@ export function initLanding({importFile, loadSample, hasReport}) {
     petTimer = setTimeout(stopPet,motion ? 1100 : 2000);
     updatePetControl();
   });
-  root.addEventListener('keydown',event=>{if(event.key==='Escape')stopPet();});
+  root.addEventListener('keydown',event=>{if(event.key==='Escape'){stopPet();stopTrain();}});
 
   function syncAppearance() {
     const dark = appearance.dataset.theme === 'dark';
@@ -62,12 +86,12 @@ export function initLanding({importFile, loadSample, hasReport}) {
     $('motion').setAttribute('aria-label', reduced.matches ? '已依系統設定減少動畫' : motion ? '關閉動畫' : '啟用動畫');
     $('motion').disabled = reduced.matches;
     page.classList.toggle('no-motion', !motion);
-    if (!motion) { presentation?.abort(); stopPet(); }
+    if (!motion) { presentation?.abort(); stopPet(); stopTrain(); }
     pauseMotion();
   }
   function pauseMotion() {
     page.classList.toggle('paused', document.hidden || host.hidden);
-    if (document.hidden || host.hidden) stopPet();
+    if (document.hidden || host.hidden) {stopPet();stopTrain();}
   }
   new MutationObserver(syncAppearance).observe(appearance,{attributes:true,attributeFilter:['data-theme','data-motion']});
   document.addEventListener('visibilitychange',pauseMotion);
@@ -106,6 +130,7 @@ export function initLanding({importFile, loadSample, hasReport}) {
     if (busy || (!file && !sample)) return;
     busy = true;
     stopPet();
+    stopTrain();
     clearOffering();
     page.classList.remove('confused');
     presentation = new AbortController();
@@ -183,7 +208,7 @@ export function initLanding({importFile, loadSample, hasReport}) {
   let depth = 0;
   const drop = $('dropzone');
   function offerFile(active) {
-    if (active) stopPet();
+    if (active) {stopPet();stopTrain();}
     drop.classList.toggle('drag-over', active);
     page.classList.toggle('offering', active);
     updatePetControl();
@@ -208,7 +233,7 @@ export function initLanding({importFile, loadSample, hasReport}) {
       $('error').textContent='請一次放入一份 .xlsx 班表。';$('error').hidden=false;
       $('bubble').textContent='一次一份，我才接得住。';
       $('announcement').textContent='未完成讀取，請一次放入一份班表。';
-      stopPet();updatePetControl();return;
+      stopPet();stopTrain();updatePetControl();return;
     }
     process(e.dataTransfer.files[0]);
   });
