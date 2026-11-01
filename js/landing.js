@@ -22,6 +22,33 @@ export function initLanding({importFile, loadSample, hasReport}) {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   let busy = false;
   let presentation = null;
+  let petTimer = null;
+
+  function updatePetControl() {
+    $('pet-cat').disabled = busy || !$('error').hidden || page.classList.contains('confused') || page.classList.contains('offering');
+    $('pet-cat').setAttribute('aria-busy',String(petTimer !== null));
+  }
+  function stopPet() {
+    if (petTimer === null) return;
+    clearTimeout(petTimer);
+    petTimer = null;
+    page.classList.remove('petting');
+    if (!busy && $('error').hidden && !page.classList.contains('offering')) {
+      $('bubble').textContent = '喵，今天也辛苦了。';
+      $('announcement').textContent = '班表僅在本機處理，不會上傳。';
+    }
+    updatePetControl();
+  }
+  $('pet-cat').addEventListener('click',()=>{
+    if ($('pet-cat').disabled || petTimer !== null) return;
+    const motion = appearance.dataset.motion === 'on' && !reduced.matches;
+    $('bubble').textContent = '喵，休息一下。';
+    $('announcement').textContent = motion ? '橘貓伸了個懶腰。喵，休息一下。' : '喵，休息一下。';
+    page.classList.toggle('petting',motion);
+    petTimer = setTimeout(stopPet,motion ? 1100 : 2000);
+    updatePetControl();
+  });
+  root.addEventListener('keydown',event=>{if(event.key==='Escape')stopPet();});
 
   function syncAppearance() {
     const dark = appearance.dataset.theme === 'dark';
@@ -35,11 +62,12 @@ export function initLanding({importFile, loadSample, hasReport}) {
     $('motion').setAttribute('aria-label', reduced.matches ? '已依系統設定減少動畫' : motion ? '關閉動畫' : '啟用動畫');
     $('motion').disabled = reduced.matches;
     page.classList.toggle('no-motion', !motion);
-    if (!motion) presentation?.abort();
+    if (!motion) { presentation?.abort(); stopPet(); }
     pauseMotion();
   }
   function pauseMotion() {
     page.classList.toggle('paused', document.hidden || host.hidden);
+    if (document.hidden || host.hidden) stopPet();
   }
   new MutationObserver(syncAppearance).observe(appearance,{attributes:true,attributeFilter:['data-theme','data-motion']});
   document.addEventListener('visibilitychange',pauseMotion);
@@ -77,6 +105,7 @@ export function initLanding({importFile, loadSample, hasReport}) {
   async function process(file, sample=false) {
     if (busy || (!file && !sample)) return;
     busy = true;
+    stopPet();
     clearOffering();
     page.classList.remove('confused');
     presentation = new AbortController();
@@ -143,6 +172,7 @@ export function initLanding({importFile, loadSample, hasReport}) {
       $('demo').disabled = false;
       $('open-workbench').disabled = false;
       page.classList.remove('busy','receiving','complete');
+      updatePetControl();
       if ($('error').hidden) $('bubble').textContent = '喵，今天也辛苦了。';
       if ($('error').hidden) $('announcement').textContent = '班表僅在本機處理，不會上傳。';
       else $('choose').focus({preventScroll:true});
@@ -153,8 +183,10 @@ export function initLanding({importFile, loadSample, hasReport}) {
   let depth = 0;
   const drop = $('dropzone');
   function offerFile(active) {
+    if (active) stopPet();
     drop.classList.toggle('drag-over', active);
     page.classList.toggle('offering', active);
+    updatePetControl();
     if (!busy && $('error').hidden) $('bubble').textContent = active ? '放這裡，我接住！' : '喵，今天也辛苦了。';
   }
   function clearOffering() { depth = 0; offerFile(false); }
@@ -172,7 +204,12 @@ export function initLanding({importFile, loadSample, hasReport}) {
   drop.addEventListener('drop',e=>{
     e.preventDefault();clearOffering();
     if(busy)return;
-    if(e.dataTransfer.files.length!==1){$('error').textContent='請一次放入一份 .xlsx 班表。';$('error').hidden=false;return;}
+    if(e.dataTransfer.files.length!==1){
+      $('error').textContent='請一次放入一份 .xlsx 班表。';$('error').hidden=false;
+      $('bubble').textContent='一次一份，我才接得住。';
+      $('announcement').textContent='未完成讀取，請一次放入一份班表。';
+      stopPet();updatePetControl();return;
+    }
     process(e.dataTransfer.files[0]);
   });
 }
