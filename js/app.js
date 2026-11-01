@@ -1,10 +1,10 @@
-import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS } from './rules.js?v=a2c2e4fd8832';
-import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth, hasRosterLayout } from './excel.js?v=a2c2e4fd8832';
-import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=a2c2e4fd8832';
-import { sampleRows, templateRows } from './sample.js?v=a2c2e4fd8832';
-import {initPrinting,clearPrint} from './print.js?v=a2c2e4fd8832';
-import {initCatEffect} from './cat.js?v=a2c2e4fd8832';
-import {initLanding} from './landing.js?v=a2c2e4fd8832';
+import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS } from './rules.js?v=473940e73b6e';
+import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth, hasRosterLayout } from './excel.js?v=473940e73b6e';
+import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=473940e73b6e';
+import { sampleRows, templateRows } from './sample.js?v=473940e73b6e';
+import {initPrinting,clearPrint} from './print.js?v=473940e73b6e';
+import {initCatEffect} from './cat.js?v=473940e73b6e';
+import {initLanding} from './landing.js?v=473940e73b6e';
 const $=id=>document.getElementById(id);
 const XLSX=globalThis.XLSX;
 const mobile=window.matchMedia('(max-width:720px)');
@@ -152,7 +152,7 @@ function renderReport() {
   $('metric-hours').textContent=fmt(report.totals.total);
   $('metric-hours-label').textContent=report.typhoonDates.length?(report.confirmed?'一般加班時數':'一般暫計時數'):(report.confirmed?'本月總時數':'本月暫計時數');
   $('typhoon-section').hidden=!report.typhoonDates.length;
-  $('summary-scope').textContent=report.typhoonDates.length?'本表與逐日明細的一般時數不含颱風出勤；請見頁面最後的獨立表。':'';
+  $('summary-scope').textContent=report.typhoonDates.length?'颱風日的休息日出勤優先列於本表休息日級距，颱風不另計；其餘颱風時數請見頁面最後的獨立表。':'';
   if(report.typhoonDates.length)renderTyphoon(report);
   $('metric-issues').textContent=String(issues.length);
   $('metric-check').classList.toggle('pending',issues.length>0);
