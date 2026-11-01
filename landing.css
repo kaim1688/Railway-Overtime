@@ -62,6 +62,8 @@ h1 span { color: var(--orange); }
 .format { display: block; font-size: 12px; color: var(--muted); margin-top: 12px; }
 .below-upload { text-align: center; margin-top: 16px; }
 .station { position: relative; min-width: 0; margin-bottom: 38px; }
+.pet-cat { position: absolute; left: 35%; top: 46%; width: 45%; height: 51%; min-width: 44px; min-height: 44px; z-index: 2; padding: 0; border: 0; background: transparent; touch-action: manipulation; }
+.pet-cat:disabled { opacity: 1; }
 .world { display: block; width: 100%; height: auto; overflow: hidden; }
 .bubble { position: absolute; top: 25%; left: 27%; font-size: 13px; line-height: 1.6; background: var(--surface); border: 1px solid var(--border); padding: 10px 14px; z-index: 1; max-width: 70%; }
 .bubble:after { content: ""; position: absolute; bottom: -7px; left: 24px; width: 11px; height: 11px; background: var(--surface); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); transform: rotate(45deg); }
@@ -121,6 +123,18 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 24px; display: flex;
 .confused .cat-pose { transform-box: fill-box; transform-origin: 50% 90%; animation: cat-flop .7s cubic-bezier(.3,0,.4,1) both; }
 .confused .eyes { animation: none; scale: 1 .3; }
 .confused .tail { animation: none; }
+.pet-stars { visibility: hidden; pointer-events: none; fill: var(--orange); }
+.pet-stars path:nth-child(even) { fill: var(--green); }
+.petting .cat { animation: none; }
+.petting .cat-pose { transform-box: fill-box; transform-origin: 50% 100%; animation: cat-stretch 1s ease-in-out both; }
+.petting .cat-paw { animation: paw-stretch 1s ease-in-out both; }
+.petting .eyes { animation: none; scale: 1 .2; }
+.petting .tail { animation-play-state: paused; }
+.petting .pet-stars { visibility: visible; }
+.petting .pet-stars path { transform-box: fill-box; transform-origin: center; opacity: 0; animation: pet-star .8s .15s ease-out both; }
+@keyframes cat-stretch { 0%, 100% { scale: 1 1; } 25% { scale: 1.04 .95; } 55%, 70% { scale: .95 1.08; } }
+@keyframes paw-stretch { 0%, 100% { translate: 0 0; } 55%, 70% { translate: 2px -7px; } }
+@keyframes pet-star { 0% { opacity: 0; translate: 0 6px; scale: .5; } 30% { opacity: 1; scale: 1; } 100% { opacity: 0; translate: 0 -15px; scale: .8; } }
 @keyframes cat-flop { 20% { rotate: 10deg; } 55% { rotate: -16deg; } 100% { rotate: -65deg; } }
 .handoff-file { position: fixed; top: 0; left: 0; width: 36px; height: 44px; z-index: 5; visibility: hidden; pointer-events: none; fill: var(--surface); stroke: var(--green); stroke-width: 2; shape-rendering: crispEdges; }
 .handoff-file path+path { fill: none; }
