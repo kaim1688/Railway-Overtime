@@ -99,7 +99,7 @@ h1 span { color: var(--orange); }
 :host([data-theme="dark"]) .lamp-light { fill: #f7d580; }
 .lamp-pool { opacity: 0; }
 .scene-ready .lamp-pool { transition: opacity .65s ease-out .1s; }
-:host([data-theme="dark"]) .lamp-pool { opacity: .3; }
+:host([data-theme="dark"]) .lamp-pool { opacity: .26; }
 .tray-lip { fill: var(--counter); transition: fill .2s ease-out; }
 .tray-face { fill: var(--counter-face); }
 .tray-slot { fill: var(--counter-edge); }
@@ -145,6 +145,19 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 24px; display: flex;
 .petting .cat-paw { animation: paw-stretch 1s ease-in-out both; }
 .petting .eyes { animation: none; scale: 1 .2; }
 .petting .tail { animation-play-state: paused; }
+.sleep-eyes, .sleep-z { visibility: hidden; }
+.sleep-z { fill: var(--orange); pointer-events: none; }
+.sleeping .eyes { visibility: hidden; animation: none; }
+.sleeping .sleep-eyes, .sleeping .sleep-z { visibility: visible; }
+.sleeping .tail { animation: none; }
+.sleeping .cat-pose { transform-box: fill-box; transform-origin: 50% 100%; rotate: -2deg; translate: 0 1px; }
+.sleeping .cat { animation: sleepy-breathe 6s ease-in-out infinite; }
+.sleeping .sleep-z path { animation: sleepy-z 4s ease-in-out infinite; }
+.sleeping .sleep-z path+path { animation-delay: 1s; }
+.no-motion .sleep-z { visibility: hidden; }
+@keyframes sleepy-breathe { 50% { translate: 0 -1px; } }
+@keyframes sleepy-z { 0%,100% { opacity: .35; translate: 0 0; } 50% { opacity: 1; translate: 0 -4px; } }
+@media (prefers-reduced-motion: reduce) { .sleep-z { visibility: hidden !important; } }
 .petting .pet-stars { visibility: visible; }
 .petting .pet-stars path { transform-box: fill-box; transform-origin: center; opacity: 0; animation: pet-star .8s .15s ease-out both; }
 @keyframes cat-stretch { 0%, 100% { scale: 1 1; } 25% { scale: 1.04 .95; } 55%, 70% { scale: .95 1.08; } }
