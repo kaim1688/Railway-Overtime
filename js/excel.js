@@ -1,4 +1,4 @@
-import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE, TYPHOON_KEYS, TYPHOON_LABELS, TYPHOON_RULE } from './rules.js?v=63df9a26bb9e';
+import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE, TYPHOON_KEYS, TYPHOON_LABELS, TYPHOON_RULE } from './rules.js?v=8ec2bf395a99';
 
 const text = v => String(v ?? '').trim();
 const NAME = ['姓名','員工姓名','員工'];

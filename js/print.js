@@ -1,4 +1,4 @@
-import {REGIMES,TYPHOON_KEYS,TYPHOON_LABELS,sumTyphoonHours} from './rules.js?v=63df9a26bb9e';
+import {REGIMES,TYPHOON_KEYS,TYPHOON_LABELS,sumTyphoonHours} from './rules.js?v=8ec2bf395a99';
 
 export function printModel(report,index=null) {
   if(!report?.employees.length)return null;

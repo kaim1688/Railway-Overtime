@@ -24,12 +24,29 @@ export function initLanding({importFile, loadSample, hasReport}) {
   let presentation = null;
   let petTimer = null;
   let trainTimer = null;
+  let idleTimer = null;
+
+  function resetIdle() {
+    clearTimeout(idleTimer);idleTimer = null;
+    const wasSleeping = page.classList.contains('sleeping');
+    page.classList.remove('sleeping');
+    if (wasSleeping && !busy && $('error').hidden) $('bubble').textContent = '喵，今天也辛苦了。';
+    if (document.hidden || host.hidden || busy || !$('error').hidden || petTimer !== null || trainTimer !== null || page.classList.contains('offering')) return;
+    idleTimer = setTimeout(()=>{
+      idleTimer = null;
+      page.classList.add('sleeping');
+      $('bubble').textContent = '呼嚕……我有在等你喔。';
+    },30000);
+  }
+  for (const type of ['pointerdown','keydown','click']) root.addEventListener(type,resetIdle,{capture:true});
+  document.addEventListener('scroll',()=>{if(!host.hidden)resetIdle();},{passive:true});
 
   function updatePetControl() {
     $('pet-cat').disabled = busy || !$('error').hidden || page.classList.contains('confused') || page.classList.contains('offering');
     $('pet-cat').setAttribute('aria-busy',String(petTimer !== null));
     $('station-sign').disabled = $('pet-cat').disabled;
     $('station-sign').setAttribute('aria-busy',String(trainTimer !== null));
+    resetIdle();
   }
   function stopTrain() {
     if (trainTimer === null) return;
@@ -92,6 +109,7 @@ export function initLanding({importFile, loadSample, hasReport}) {
   function pauseMotion() {
     page.classList.toggle('paused', document.hidden || host.hidden);
     if (document.hidden || host.hidden) {stopPet();stopTrain();}
+    resetIdle();
   }
   new MutationObserver(syncAppearance).observe(appearance,{attributes:true,attributeFilter:['data-theme','data-motion']});
   document.addEventListener('visibilitychange',pauseMotion);
