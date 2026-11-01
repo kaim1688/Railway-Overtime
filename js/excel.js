@@ -1,4 +1,4 @@
-import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE, TYPHOON_KEYS, TYPHOON_LABELS, TYPHOON_RULE } from './rules.js?v=a2c2e4fd8832';
+import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE, TYPHOON_KEYS, TYPHOON_LABELS, TYPHOON_RULE } from './rules.js?v=473940e73b6e';
 
 const text = v => String(v ?? '').trim();
 const NAME = ['姓名','員工姓名','員工'];
@@ -221,7 +221,7 @@ export function reportWorkbook(XLSX, report, metadata={}) {
   append('計算設定',[['項目','內容'],['規則版本',report.ruleVersion],['用途','依提供規則內部試算，非核定薪資；只計時數'],['國定本日',report.holidays.join('、')],['已設定國定日期月份',report.confirmedMonths.join('、')],...(STARRED_ATTENDANCE_DATE.startsWith(report.month)?[['11/28 出勤／例休特例',STARRED_ATTENDANCE_RULE]]:[]),...Object.entries(metadata).map(([k,v])=>[k,String(v)])]);
   if(report.excluded?.length)append('排除人員',[['姓名','資料位置','排除原因'],...report.excluded.map(p=>[p.name,p.source,p.reason])]);
   if(report.typhoonDates?.length) {
-    XLSX.utils.sheet_add_aoa(wb.Sheets['計算設定'],[['颱風出勤日期',report.typhoonDates.join('、')],['颱風出勤規則',TYPHOON_RULE],['總計範圍','統計總表及每日明細的一般時數不含颱風出勤；颱風時數另列最後工作表。']],{origin:-1});
+    XLSX.utils.sheet_add_aoa(wb.Sheets['計算設定'],[['颱風出勤日期',report.typhoonDates.join('、')],['颱風出勤規則',TYPHOON_RULE],['總計範圍','颱風日休息日出勤優先列於統計總表及每日明細的休息日級距，颱風時數0H；其餘颱風時數另列最後工作表，不重複計入。']],{origin:-1});
     append('颱風假出勤',[['結算年月','姓名','員工編號',...report.typhoonDates.map(d=>`${d} 原班別`),...TYPHOON_LABELS,'颱風出勤合計','需核對事項','逐日依據／資料位置'],
       ...report.employees.map(p=>[report.month,p.name,p.id,...report.typhoonDates.map(d=>p.detail.find(r=>r.date===d)?.symbol || '空白'),...TYPHOON_KEYS.map(k=>p.typhoonTotals[k]),p.typhoonTotals.total,p.confirmed?'':'需核對／暫計',p.detail.filter(r=>r.isTyphoonDate).map(r=>`${r.date}：${TYPHOON_KEYS.map(k=>r.typhoonHours[k]).join('／')}H；${r.note}；${r.source || '無來源位置'}${r.issues.length?'；'+r.issues.join('；'):''}`).join('\n')]),
       [report.month,'全體合計','',...report.typhoonDates.map(()=>''),...TYPHOON_KEYS.map(k=>report.typhoonTotals[k]),report.typhoonTotals.total,report.confirmed?'':'需核對／暫計','獨立計算，不併入一般總計或國定時數']]);
