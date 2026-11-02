@@ -1,4 +1,4 @@
-import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE, TYPHOON_KEYS, TYPHOON_LABELS, TYPHOON_RULE } from './rules.js?v=8ec2bf395a99';
+import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE, TYPHOON_KEYS, TYPHOON_LABELS, TYPHOON_RULE, typhoonValues, typhoonDateLabel, RATE_RULE } from './rules.js?v=9451fc7ccf42';
 
 const text = v => String(v ?? '').trim();
 const NAME = ['姓名','員工姓名','員工'];
@@ -218,13 +218,13 @@ export function reportWorkbook(XLSX, report, metadata={}) {
   append('每日明細', [['姓名','員工編號','班制','日期','原班別','國定本日',...LABELS,'當日合計','計算依據','轉移來源 → 目標','資料位置','異常','11/28 出勤／例休特例'],
     ...report.employees.flatMap(p=>p.detail.map(r=>[p.name,p.id,REGIMES[p.regime],r.date,r.symbol,r.isHoliday?'是':'否',...KEYS.map(k=>r.hours[k]),KEYS.reduce((n,k)=>n+r.hours[k],0),r.note,r.transfer,r.source || '',r.issues.join('；'),r.isSpecialAttendance?'使用者確認日期；算法及疑義見計算依據／異常':'']))]);
   append('待核對事項',[['姓名','日期','問題'],...report.issues.map(m=>['全體','',m]),...report.employees.flatMap(p=>p.issues.map(i=>[p.name,i.date,i.message]))]);
-  append('計算設定',[['項目','內容'],['規則版本',report.ruleVersion],['用途','依提供規則內部試算，非核定薪資；只計時數'],['國定本日',report.holidays.join('、')],['已設定國定日期月份',report.confirmedMonths.join('、')],...(STARRED_ATTENDANCE_DATE.startsWith(report.month)?[['11/28 出勤／例休特例',STARRED_ATTENDANCE_RULE]]:[]),...Object.entries(metadata).map(([k,v])=>[k,String(v)])]);
+  append('計算設定',[['項目','內容'],['規則版本',report.ruleVersion],['倍率分類',RATE_RULE],['用途','依提供規則內部試算，非核定薪資；只計時數'],['國定本日',report.holidays.join('、')],['已設定國定日期月份',report.confirmedMonths.join('、')],...(STARRED_ATTENDANCE_DATE.startsWith(report.month)?[['11/28 出勤／例休特例',STARRED_ATTENDANCE_RULE]]:[]),...Object.entries(metadata).map(([k,v])=>[k,String(v)])]);
   if(report.excluded?.length)append('排除人員',[['姓名','資料位置','排除原因'],...report.excluded.map(p=>[p.name,p.source,p.reason])]);
   if(report.typhoonDates?.length) {
-    XLSX.utils.sheet_add_aoa(wb.Sheets['計算設定'],[['颱風出勤日期',report.typhoonDates.join('、')],['颱風出勤規則',TYPHOON_RULE],['總計範圍','颱風日休息日出勤優先列於統計總表及每日明細的休息日級距，颱風時數0H；其餘颱風時數另列最後工作表，不重複計入。']],{origin:-1});
-    append('颱風假出勤',[['結算年月','姓名','員工編號',...report.typhoonDates.map(d=>`${d} 原班別`),...TYPHOON_LABELS,'颱風出勤合計','需核對事項','逐日依據／資料位置'],
-      ...report.employees.map(p=>[report.month,p.name,p.id,...report.typhoonDates.map(d=>p.detail.find(r=>r.date===d)?.symbol || '空白'),...TYPHOON_KEYS.map(k=>p.typhoonTotals[k]),p.typhoonTotals.total,p.confirmed?'':'需核對／暫計',p.detail.filter(r=>r.isTyphoonDate).map(r=>`${r.date}：${TYPHOON_KEYS.map(k=>r.typhoonHours[k]).join('／')}H；${r.note}；${r.source || '無來源位置'}${r.issues.length?'；'+r.issues.join('；'):''}`).join('\n')]),
-      [report.month,'全體合計','',...report.typhoonDates.map(()=>''),...TYPHOON_KEYS.map(k=>report.typhoonTotals[k]),report.typhoonTotals.total,report.confirmed?'':'需核對／暫計','獨立計算，不併入一般總計或國定時數']]);
+    XLSX.utils.sheet_add_aoa(wb.Sheets['計算設定'],[['颱風出勤日期',report.typhoonDates.map(typhoonDateLabel).join('、')],['颱風出勤規則',TYPHOON_RULE],['總計範圍','天災休息日出勤及其餘天災時數全部另列最後工作表，不併一般或國定；休息日三段合併一欄，順序為1.34／1.67／2.67倍，不重複計入。']],{origin:-1});
+    append('颱風假出勤',[['結算年月','姓名','員工編號',...report.typhoonDates.map(d=>`${typhoonDateLabel(d)} 原班別`),...TYPHOON_LABELS,'颱風出勤合計','需核對事項','逐日依據／資料位置'],
+      ...report.employees.map(p=>[report.month,p.name,p.id,...report.typhoonDates.map(d=>p.detail.find(r=>r.date===d)?.symbol || '空白'),...typhoonValues(p.typhoonTotals),p.typhoonTotals.total,p.confirmed?'':'需核對／暫計',p.detail.filter(r=>r.isTyphoonDate).map(r=>`${typhoonDateLabel(r.date)}：${typhoonValues(r.typhoonHours).join('；')}H；${r.note}；${r.source || '無來源位置'}${r.issues.length?'；'+r.issues.join('；'):''}`).join('\n')]),
+      [report.month,'全體合計','',...report.typhoonDates.map(()=>''),...typhoonValues(report.typhoonTotals),report.typhoonTotals.total,report.confirmed?'':'需核對／暫計','獨立計算，不併入一般總計或國定時數']]);
   }
   return wb;
 }

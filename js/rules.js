@@ -1,8 +1,10 @@
-export const RULE_VERSION = '使用者規則草稿 v1.11（2026-11-01）/ MVP 0.4.6';
+export const RULE_VERSION = '使用者規則草稿 v1.12（2026-11-02）/ MVP 0.4.7';
 export const TYPHOON_DATES = ['2026-10-23','2026-10-24'];
-export const TYPHOON_KEYS = ['typhoon08','typhoon910','typhoon1112','typhoonRest'];
-export const TYPHOON_LABELS = ['颱風出勤 0–8H','颱風出勤 9–10H','颱風出勤 11–12H','颱風例／休 0–8H'];
-export const TYPHOON_RULE = '使用者確認：僅2026/10/23、10/24，已知$休息日出勤優先：三班制$日／$夜計休息日2／6／3H，常日已知$八小時班計2／6H，列一般統計，颱風時數0H、不重複計入。其餘三班制日／夜、常日替日／夜班颱風出勤8／2／1H，常日已知8小時班8H，取消原延時，獨立列末表、不併國定。公休0H且不轉移；僅三班制例／休每次8H另列颱風例／休欄，常日例休及其他未出勤0H，未知及衝突待核對。';
+export const TYPHOON_KEYS = ['typhoon08','typhoonOver','typhoonRest02','typhoonRest38','typhoonRest912','typhoonRest'];
+export const TYPHOON_LABELS = ['天災出勤 0–8H（1倍）','天災出勤 超過8H（2倍）','天災休息日出勤 2／6／3H（1.34／1.67／2.67倍）','天災例／休 0–8H（1倍）'];
+export const TYPHOON_RULE = '使用者依總務更新：僅2026/10/23（天災平日）、10/24（天災假日），日期分類先括弧註記，不自行擴充算法。三班日／夜及常日替日／夜天災出勤8H（1倍）＋3H（2倍）；常日已知8小時班出勤8H（1倍）。天災休息日出勤三班$日／$夜2／6／3H（1.34／1.67／2.67倍）、常日$八小時班2／6／0H，合併一欄呈現；全部另列最下方，不併一般或國定、不重複。公休0H不轉移；僅三班例／休8H（1倍），常日例休0H。未知、重複、日期與補休衝突仍核對。';
+export const typhoonDateLabel = date => date + (date==='2026-10-23'?'（天災平日）':date==='2026-10-24'?'（天災假日）':'');
+export const typhoonValues = h => [h.typhoon08,h.typhoonOver,[h.typhoonRest02,h.typhoonRest38,h.typhoonRest912].join(' / '),h.typhoonRest];
 const zeroTyphoon = () => Object.fromEntries(TYPHOON_KEYS.map(k=>[k,0]));
 export function sumTyphoonHours(items) {
   const h=zeroTyphoon();
@@ -11,7 +13,7 @@ export function sumTyphoonHours(items) {
 }
 export const STARRED_ATTENDANCE_DATE = '2026-11-28';
 export const STARRED_ATTENDANCE_RULE = '2026/11/28 使用者確認：三班制 *日／*夜、常日班帶 * 替日班計國定出勤 8／2／1H；帶 * 的已知 8 小時班計國定出勤 8H，不另加普通延時，三班制例／休計國定例／休8H；常日例休及其他未出勤0H，不觸發公休轉移。';
-export { DEFAULT_HOLIDAYS } from './holidays.js?v=8ec2bf395a99';
+export { DEFAULT_HOLIDAYS } from './holidays.js?v=9451fc7ccf42';
 export const REGIMES = {threeShift:'三班制', regular:'常日班替班'};
 export const RELIEF_SHIFTS = ['日轍','日剪','日售','日運','日調','日號','日售領','夜轍','夜剪','夜售','夜運','夜調'];
 export const EIGHT_HOUR_SHIFTS = ['常日售','晚常剪','晚常售','A售','B售','晚A售','早B售','A剪','B剪','晚A剪','早B剪','S','晚S','晚AS','早BS'];
@@ -29,6 +31,8 @@ function regularKind(symbol) {
 }
 export const KEYS = ['ordinary', 'ordinary34', 'rest02', 'rest38', 'rest912', 'holiday08', 'holiday910', 'holiday1112', 'holidayRest'];
 export const LABELS = ['延時工資 0–2H', '延時工資 3–4H', '休息日 0–2H', '休息日 3–8H', '休息日 9–12H', '國定出勤 0–8H', '國定 9–10H', '國定 11–12H', '國定例／休 0–8H'];
+export const HOUR_RATES = [1.34,1.67,1.34,1.67,2.67,1,1.34,1.67,1];
+export const RATE_RULE = '倍率依使用者提供之總務說明，僅標示分類、不計金額：'+LABELS.map((label,i)=>`${label}：${HOUR_RATES[i]}倍`).join('；');
 export const SYMBOLS = Object.freeze({ '日':'day', '夜':'night', '$日':'big', '$夜':'big', '*日':'holiday', '*夜':'holiday', '例':'rest', '休':'rest', '公休':'off', '特休':'leave', '家照':'noWork', '家照假':'noWork', '家庭照顧假':'noWork', '公假':'noWork', '身調假':'noWork', '身心調適假':'noWork', '選舉假':'noWork', '颱風假':'noWork', '生理假':'noWork', '補休':'noWork', '國慶日':'holidayOff', '行憲日':'holidayOff', '行憲紀念日':'holidayOff' });
 const zero = () => Object.fromEntries(KEYS.map(k => [k, 0]));
 const round = n => Math.round(n * 10) / 10;
@@ -114,13 +118,13 @@ export function calculate({ month, employees, holidays, confirmedMonths = [], in
         else if(['noWork','leave','rest'].includes(row.kind))row.note='颱風日期未出勤：加班 0H';
         else if(regular && rows.some(r=>r.compensationTarget===row.date))warn(row,'颱風出勤另有補休對應，抵銷規則未確認，請人工核對。');
         else if((!regular && row.kind==='big') || (regular && row.kind==='restShort')) {
-          row.hours=hoursFor(row.kind);
-          row.note=`颱風日休息日出勤優先：${row.kind==='big'?'2／6／3H':'2／6H'}，列一般統計休息日級距；颱風出勤不另計（0H）`;
+          Object.assign(row.typhoonHours,{typhoonRest02:2,typhoonRest38:6,typhoonRest912:row.kind==='big'?3:0});
+          row.note=`天災休息日出勤：${row.kind==='big'?'2／6／3H':'2／6／0H'}（1.34／1.67／2.67倍），另列末表；不併一般，不另加天災8＋3H`;
         }
         else if((!regular && ['day','night','holiday'].includes(row.kind)) || (regular && ['relief','holidayLong','eightHour','holidayShort'].includes(row.kind))) {
           const short=regular && ['eightHour','holidayShort'].includes(row.kind);
-          Object.assign(row.typhoonHours,{typhoon08:8,typhoon910:short?0:2,typhoon1112:short?0:1});
-          row.note=`颱風出勤：${short?'8H':'8／2／1H'}，另列末表；原延時及一般時數取消，不併國定`;
+          Object.assign(row.typhoonHours,{typhoon08:8,typhoonOver:short?0:3});
+          row.note=`天災出勤：${short?'8H（1倍）':'8H（1倍）＋3H（2倍）'}，另列末表；原延時及一般時數取消，不併國定`;
         } else warn(row,'颱風日期班別與出勤規則衝突，請人工核對。');
         continue;
       }
