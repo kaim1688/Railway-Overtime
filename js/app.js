@@ -1,10 +1,10 @@
-import { KEYS, LABELS, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS } from './rules.js?v=8ec2bf395a99';
-import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth, hasRosterLayout } from './excel.js?v=8ec2bf395a99';
-import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=8ec2bf395a99';
-import { sampleRows, templateRows } from './sample.js?v=8ec2bf395a99';
-import {initPrinting,clearPrint} from './print.js?v=8ec2bf395a99';
-import {initCatEffect} from './cat.js?v=8ec2bf395a99';
-import {initLanding} from './landing.js?v=8ec2bf395a99';
+import { KEYS, LABELS, HOUR_RATES, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS, typhoonValues, typhoonDateLabel } from './rules.js?v=9451fc7ccf42';
+import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth, hasRosterLayout } from './excel.js?v=9451fc7ccf42';
+import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=9451fc7ccf42';
+import { sampleRows, templateRows } from './sample.js?v=9451fc7ccf42';
+import {initPrinting,clearPrint} from './print.js?v=9451fc7ccf42';
+import {initCatEffect} from './cat.js?v=9451fc7ccf42';
+import {initLanding} from './landing.js?v=9451fc7ccf42';
 const $=id=>document.getElementById(id);
 const XLSX=globalThis.XLSX;
 const mobile=window.matchMedia('(max-width:720px)');
@@ -30,6 +30,17 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape')clearExportR
 const fmt=n=>Number(n.toFixed(1)).toString();
 const specialDateNote=month=>STARRED_ATTENDANCE_DATE.startsWith(month || 'none')?'；11/28 出勤與三班例休另依特例':'';
 function node(tag,value,className) {const e=document.createElement(tag);e.textContent=value;if(className)e.className=className;return e;}
+function rateBadge(rate) {const e=node('span',`${rate}倍`,'rate-badge');e.dataset.rate=rate;return e;}
+function addRateHeaders(id,groups) {
+  const headers=document.querySelectorAll(`#${id} thead th`);
+  groups.forEach(([index,rates])=>headers[index].append(...rates.map(rateBadge)));
+}
+addRateHeaders('summary',HOUR_RATES.map((rate,i)=>[i+1,[rate]]));
+addRateHeaders('daily',[[2,[1.34]],[3,[1.67]],[4,[1.34,1.67,2.67]],[5,[1,1.34,1.67]],[6,[1]]]);
+for(const id of ['typhoon-summary','typhoon-daily']) {
+  const start=id==='typhoon-summary'?1:3;
+  addRateHeaders(id,[[start,[1]],[start+1,[2]],[start+2,[1.34,1.67,2.67]],[start+3,[1]]]);
+}
 function message(value,error=false) {$('message').replaceChildren(...(value?[node('p',value,`feedback${error?' error':''}`)]:[]));}
 function invalidate() {clearExportReceipt();$('setup-fold').open=true;$('setup-caption').textContent='選擇或調整班表設定';state.report=null;$('typhoon-section').hidden=true;clearPrint();$('print-summary').disabled=true;$('print-employee').disabled=true;$('export').disabled=true;$('report').hidden=true;$('empty').hidden=false;$('result-caption').textContent='等待完整的班表與日期設定。';message('');}
 function refreshDates() {
@@ -159,7 +170,7 @@ function renderReport() {
     if(!p.confirmed || report.issues.length)summary.append(node('span','需核對／暫計','mobile-warning'));
     const content=node('div','','mobile-person-detail'),list=document.createElement('dl');
     content.append(node('p',REGIMES[p.regime],'help'));
-    KEYS.forEach((key,index)=>{const group=document.createElement('div');group.append(node('dt',LABELS[index]),node('dd',`${fmt(p.totals[key])} H`));list.append(group);});
+    KEYS.forEach((key,index)=>{const group=document.createElement('div'),label=node('dt',LABELS[index]);label.append(rateBadge(HOUR_RATES[index]));group.append(label,node('dd',`${fmt(p.totals[key])} H`));list.append(group);});
     const button=node('button','查看逐日明細');button.type='button';button.addEventListener('click',()=>selectEmployee(i));
     content.append(list,button);detail.append(summary,content);return detail;
   }));
@@ -169,7 +180,7 @@ function renderReport() {
   $('metric-hours').textContent=fmt(report.totals.total);
   $('metric-hours-label').textContent=report.typhoonDates.length?(report.confirmed?'一般加班時數':'一般暫計時數'):(report.confirmed?'本月總時數':'本月暫計時數');
   $('typhoon-section').hidden=!report.typhoonDates.length;
-  $('summary-scope').textContent=report.typhoonDates.length?'颱風日的休息日出勤優先列於本表休息日級距，颱風不另計；其餘颱風時數請見頁面最後的獨立表。':'';
+  $('summary-scope').textContent=report.typhoonDates.length?'天災出勤、天災休息日出勤與天災例／休全部另列頁面最後，不併本表。':'';
   if(report.typhoonDates.length)renderTyphoon(report);
   $('metric-issues').textContent=String(issues.length);
   $('metric-check').classList.toggle('pending',issues.length>0);
@@ -181,18 +192,18 @@ function renderReport() {
 }
 function renderTyphoon(report) {
   $('typhoon-status-heading').hidden=report.confirmed;
-  $('typhoon-caption').textContent=`${report.typhoonDates.join('、')} · ${report.confirmed?'颱風出勤合計':'颱風出勤暫計'} ${fmt(report.typhoonTotals.total)} H · 不併入上方一般／國定時數`;
+  $('typhoon-caption').textContent=`${report.typhoonDates.map(typhoonDateLabel).join('、')} · ${report.confirmed?'天災合計':'天災暫計'} ${fmt(report.typhoonTotals.total)} H · 不併入上方一般／國定時數`;
   $('typhoon-summary-body').replaceChildren(...report.employees.map(p=>{
     const tr=document.createElement('tr');
-    for(const value of [p.name,...TYPHOON_KEYS.map(k=>fmt(p.typhoonTotals[k])),fmt(p.typhoonTotals.total),...(report.confirmed?[]:[p.confirmed?'':'需核對／暫計'])])tr.append(node('td',value));
+    for(const value of [p.name,...typhoonValues(p.typhoonTotals),fmt(p.typhoonTotals.total),...(report.confirmed?[]:[p.confirmed?'':'需核對／暫計'])])tr.append(node('td',value));
     return tr;
   }));
   const total=document.createElement('tr');total.append(node('th','全體合計'));
-  for(const value of [...TYPHOON_KEYS.map(k=>fmt(report.typhoonTotals[k])),fmt(report.typhoonTotals.total),...(report.confirmed?[]:['暫計'])])total.append(node('td',value));
+  for(const value of [...typhoonValues(report.typhoonTotals),fmt(report.typhoonTotals.total),...(report.confirmed?[]:['暫計'])])total.append(node('td',value));
   $('typhoon-summary-total').replaceChildren(total);
   $('typhoon-daily-body').replaceChildren(...report.employees.flatMap(p=>p.detail.filter(r=>r.isTyphoonDate).map(r=>{
     const tr=document.createElement('tr');
-    for(const value of [p.name,r.date,r.symbol || '空白',...TYPHOON_KEYS.map(k=>fmt(r.typhoonHours[k])),fmt(TYPHOON_KEYS.reduce((n,k)=>n+r.typhoonHours[k],0))])tr.append(node('td',value));
+    for(const value of [p.name,typhoonDateLabel(r.date),r.symbol || '空白',...typhoonValues(r.typhoonHours),fmt(TYPHOON_KEYS.reduce((n,k)=>n+r.typhoonHours[k],0))])tr.append(node('td',value));
     const note=node('td',r.note || '待核對');if(r.source)note.append(node('span',r.source,'source'));if(r.issues.length)note.append(node('p',r.issues.join('；'),'error-text'));tr.append(note);return tr;
   })));
 }

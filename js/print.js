@@ -1,4 +1,4 @@
-import {REGIMES,TYPHOON_KEYS,TYPHOON_LABELS,sumTyphoonHours} from './rules.js?v=8ec2bf395a99';
+import {REGIMES,TYPHOON_LABELS,sumTyphoonHours,typhoonValues,typhoonDateLabel} from './rules.js?v=9451fc7ccf42';
 
 export function printModel(report,index=null) {
   if(!report?.employees.length)return null;
@@ -35,10 +35,10 @@ function prepare(report,index) {
     extra.className='print-typhoon';
     const row=(values,tag='td')=>{const tr=document.createElement('tr');tr.append(...values.map(v=>text(tag,String(v))));return tr;};
     head.append(row(['員工',...TYPHOON_LABELS,'颱風合計'],'th'));
-    body.append(...model.typhoonPeople.map(p=>row([p.name,...TYPHOON_KEYS.map(k=>p.typhoonTotals[k]),p.typhoonTotals.total])));
+    body.append(...model.typhoonPeople.map(p=>row([p.name,...typhoonValues(p.typhoonTotals),p.typhoonTotals.total])));
     const total=sumTyphoonHours(model.typhoonPeople.map(p=>p.typhoonTotals));
-    foot.append(row(['合計',...TYPHOON_KEYS.map(k=>total[k]),total.total]));extra.append(head,body,foot);
-    area.append(text('h2','颱風假出勤時數（獨立統計）'),text('p',`${model.typhoonDates.join('、')}；休息日出勤優先列一般表，颱風不另計；公休0H，僅三班制例／休8H，常日例休0H。以上一般時數不含本表。${model.status}`),extra);
+    foot.append(row(['合計',...typhoonValues(total),total.total]));extra.append(head,body,foot);
+    area.append(text('h2','天災（颱風）出勤時數（獨立統計）'),text('p',`${model.typhoonDates.map(typhoonDateLabel).join('、')}；天災出勤8H（1倍）＋3H（2倍），休息日另按2／6／3H合併一欄；公休0H，僅三班制例／休8H，常日例休0H。以上一般時數不含本表。${model.status}`),extra);
   }
   if(model.warnings.length) {
     const list=document.createElement('ul');

@@ -274,3 +274,13 @@ details>summary{cursor:pointer;font-size:0.928571rem;font-weight:600}#report>det
 @media(prefers-reduced-motion:reduce){.export-receipt *{animation:none!important}}
 @media(max-width:720px){.export-receipt{right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px))}}
 @media print{.export-receipt{display:none!important}}
+
+/* Rate categories keep the same opaque palette in both themes; text carries the meaning. */
+.rate-badge{display:inline-block;margin:4px 2px 0;padding:2px 5px;border:1px solid #87949b;border-radius:3px;font-size:11px;line-height:1.4;white-space:nowrap;font-weight:600;background:#fff;color:#263c47}
+.rate-badge[data-rate="1.34"]{background:#d5f2e7;color:#174936;border-color:#74aa91}
+.rate-badge[data-rate="1.67"]{background:#dfeafb;color:#193e74;border-color:#849fc7}
+.rate-badge[data-rate="2"]{background:#ece1f5;color:#59346e;border-color:#ad90bf}
+.rate-badge[data-rate="2.67"]{background:#fce5c8;color:#713d10;border-color:#c49a66}
+#typhoon-summary th:nth-child(4),#typhoon-daily th:nth-child(6){min-width:12rem}
+#typhoon-summary td:nth-child(4),#typhoon-daily td:nth-child(6){white-space:nowrap;font-variant-numeric:tabular-nums}
+#typhoon-summary thead .rate-badge,#typhoon-daily thead .rate-badge{margin-top:5px}
