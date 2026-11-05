@@ -1,4 +1,4 @@
-import {REGIMES,TYPHOON_LABELS,sumTyphoonHours,typhoonValues,typhoonDateLabel} from './rules.js?v=9451fc7ccf42';
+import {REGIMES,TYPHOON_LABELS,sumTyphoonHours,typhoonValues,typhoonDateLabel} from './rules.js?v=9d594214b79c';
 
 export function printModel(report,index=null) {
   if(!report?.employees.length)return null;
@@ -38,7 +38,7 @@ function prepare(report,index) {
     body.append(...model.typhoonPeople.map(p=>row([p.name,...typhoonValues(p.typhoonTotals),p.typhoonTotals.total])));
     const total=sumTyphoonHours(model.typhoonPeople.map(p=>p.typhoonTotals));
     foot.append(row(['合計',...typhoonValues(total),total.total]));extra.append(head,body,foot);
-    area.append(text('h2','天災（颱風）出勤時數（獨立統計）'),text('p',`${model.typhoonDates.map(typhoonDateLabel).join('、')}；天災出勤8H（1倍）＋3H（2倍），休息日另按2／6／3H合併一欄；公休0H，僅三班制例／休8H，常日例休0H。以上一般時數不含本表。${model.status}`),extra);
+    area.append(text('h2','天災（颱風）出勤時數（獨立統計）'),text('p',`${model.typhoonDates.map(typhoonDateLabel).join('、')}；天災長班8H（1倍）＋3H（2倍），平日／假日分欄；三班例休8H併當日0–8H。大班挪移目標列上方一般休息日，來源日仍計天災；公休及常日例休0H。以上一般時數不含本表。${model.status}`),extra);
   }
   if(model.warnings.length) {
     const list=document.createElement('ul');

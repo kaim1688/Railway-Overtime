@@ -1,10 +1,10 @@
-export const RULE_VERSION = '使用者規則草稿 v1.12（2026-11-02）/ MVP 0.4.7';
+export const RULE_VERSION = '使用者規則草稿 v1.13（2026-11-05）/ MVP 0.4.8';
 export const TYPHOON_DATES = ['2026-10-23','2026-10-24'];
-export const TYPHOON_KEYS = ['typhoon08','typhoonOver','typhoonRest02','typhoonRest38','typhoonRest912','typhoonRest'];
-export const TYPHOON_LABELS = ['天災出勤 0–8H（1倍）','天災出勤 超過8H（2倍）','天災休息日出勤 2／6／3H（1.34／1.67／2.67倍）','天災例／休 0–8H（1倍）'];
-export const TYPHOON_RULE = '使用者依總務更新：僅2026/10/23（天災平日）、10/24（天災假日），日期分類先括弧註記，不自行擴充算法。三班日／夜及常日替日／夜天災出勤8H（1倍）＋3H（2倍）；常日已知8小時班出勤8H（1倍）。天災休息日出勤三班$日／$夜2／6／3H（1.34／1.67／2.67倍）、常日$八小時班2／6／0H，合併一欄呈現；全部另列最下方，不併一般或國定、不重複。公休0H不轉移；僅三班例／休8H（1倍），常日例休0H。未知、重複、日期與補休衝突仍核對。';
+export const TYPHOON_KEYS = ['typhoon08','typhoonOver','typhoonRest02','typhoonRest38','typhoonRest912','typhoonHoliday08','typhoonHolidayOver'];
+export const TYPHOON_LABELS = ['天災出勤0–8H（1倍）','天災出勤9H以後（2倍）','天災休息日出勤2／6／3H（1.34／1.67／2.67倍）','天災出勤（假日）0–8H（1倍）','天災出勤（假日）9H以後（2倍）'];
+export const TYPHOON_RULE = '使用者依總務2026/11/05更新：10/23（天災平日）與10/24（天災假日）分欄；已知長班天災8H（1倍）＋3H（2倍），常日8小時班8H，三班例／休8H併入當日0–8H。天災大班往前挪到最近普通日班，取消其1.2H改一般休息日2／6／3H；常日$8小時班往前挪到最近普通8小時班，0H改一般休息日2／6H。來源天災日仍計8＋3H或8H。保留天災休息日單欄，但已挪至一般表者不重複計入。公休0H不轉移、常日例休0H；缺資料、重複、占用、跨月及補休衝突待核對。';
 export const typhoonDateLabel = date => date + (date==='2026-10-23'?'（天災平日）':date==='2026-10-24'?'（天災假日）':'');
-export const typhoonValues = h => [h.typhoon08,h.typhoonOver,[h.typhoonRest02,h.typhoonRest38,h.typhoonRest912].join(' / '),h.typhoonRest];
+export const typhoonValues = h => [h.typhoon08,h.typhoonOver,[h.typhoonRest02,h.typhoonRest38,h.typhoonRest912].join(' / '),h.typhoonHoliday08,h.typhoonHolidayOver];
 const zeroTyphoon = () => Object.fromEntries(TYPHOON_KEYS.map(k=>[k,0]));
 export function sumTyphoonHours(items) {
   const h=zeroTyphoon();
@@ -13,7 +13,7 @@ export function sumTyphoonHours(items) {
 }
 export const STARRED_ATTENDANCE_DATE = '2026-11-28';
 export const STARRED_ATTENDANCE_RULE = '2026/11/28 使用者確認：三班制 *日／*夜、常日班帶 * 替日班計國定出勤 8／2／1H；帶 * 的已知 8 小時班計國定出勤 8H，不另加普通延時，三班制例／休計國定例／休8H；常日例休及其他未出勤0H，不觸發公休轉移。';
-export { DEFAULT_HOLIDAYS } from './holidays.js?v=9451fc7ccf42';
+export { DEFAULT_HOLIDAYS } from './holidays.js?v=9d594214b79c';
 export const REGIMES = {threeShift:'三班制', regular:'常日班替班'};
 export const RELIEF_SHIFTS = ['日轍','日剪','日售','日運','日調','日號','日售領','夜轍','夜剪','夜售','夜運','夜調'];
 export const EIGHT_HOUR_SHIFTS = ['常日售','晚常剪','晚常售','A售','B售','晚A售','早B售','A剪','B剪','晚A剪','早B剪','S','晚S','晚AS','早BS'];
@@ -105,6 +105,7 @@ export function calculate({ month, employees, holidays, confirmedMonths = [], in
       }
       row.isHoliday = holidaySet.has(row.date) && row.date!==STARRED_ATTENDANCE_DATE;
       row.isTyphoonDate = TYPHOON_DATES.includes(row.date);
+      row.isTyphoonHoliday = row.date==='2026-10-24';
       row.isSpecialAttendance = row.date===STARRED_ATTENDANCE_DATE && (row.symbol.startsWith('*') || (!regular && row.kind==='rest'));
     }
     for (const row of rows) {
@@ -113,17 +114,20 @@ export function calculate({ month, employees, holidays, confirmedMonths = [], in
       if (!reviewed.has(row.date.slice(0,7))) { warn(row,'該月國定本日清單未確認。'); continue; }
       if(row.isTyphoonDate) {
         if(row.isHoliday)warn(row,'颱風日期與國定日期重疊，請核對設定，不重複計入。');
-        else if(!regular && row.kind==='rest') {row.typhoonHours.typhoonRest=8;row.note='颱風例／休：8H，另列末表，不併出勤級距、國定或一般時數';}
+        else if(!regular && row.kind==='rest') {row.typhoonHours[row.isTyphoonHoliday?'typhoonHoliday08':'typhoon08']=8;row.note='天災例／休：8H（1倍），依日期併入平日或假日0–8H；9H以後0H，另列末表';}
         else if(row.kind==='off')row.note='颱風日期公休：加班 0H，不觸發國定公休轉移';
         else if(['noWork','leave','rest'].includes(row.kind))row.note='颱風日期未出勤：加班 0H';
         else if(regular && rows.some(r=>r.compensationTarget===row.date))warn(row,'颱風出勤另有補休對應，抵銷規則未確認，請人工核對。');
         else if((!regular && row.kind==='big') || (regular && row.kind==='restShort')) {
-          Object.assign(row.typhoonHours,{typhoonRest02:2,typhoonRest38:6,typhoonRest912:row.kind==='big'?3:0});
-          row.note=`天災休息日出勤：${row.kind==='big'?'2／6／3H':'2／6／0H'}（1.34／1.67／2.67倍），另列末表；不併一般，不另加天災8＋3H`;
+          row.typhoonMove=true;
+          row.typhoonHours[row.isTyphoonHoliday?'typhoonHoliday08':'typhoon08']=8;
+          row.typhoonHours[row.isTyphoonHoliday?'typhoonHolidayOver':'typhoonOver']=regular?0:3;
+          row.note=`天災大班待挪移；當日天災出勤${regular?'8H（1倍）':'8H（1倍）＋3H（2倍）'}另列末表`;
         }
         else if((!regular && ['day','night','holiday'].includes(row.kind)) || (regular && ['relief','holidayLong','eightHour','holidayShort'].includes(row.kind))) {
           const short=regular && ['eightHour','holidayShort'].includes(row.kind);
-          Object.assign(row.typhoonHours,{typhoon08:8,typhoonOver:short?0:3});
+          row.typhoonHours[row.isTyphoonHoliday?'typhoonHoliday08':'typhoon08']=8;
+          row.typhoonHours[row.isTyphoonHoliday?'typhoonHolidayOver':'typhoonOver']=short?0:3;
           row.note=`天災出勤：${short?'8H（1倍）':'8H（1倍）＋3H（2倍）'}，另列末表；原延時及一般時數取消，不併國定`;
         } else warn(row,'颱風日期班別與出勤規則衝突，請人工核對。');
         continue;
@@ -183,13 +187,14 @@ export function calculate({ month, employees, holidays, confirmedMonths = [], in
     // A known off-day stays searchable even when its own transfer needs review.
     for (const row of rows) row.inputUncertain = row.issues.length > 0;
     const occupied = new Set();
-    for (const source of rows.filter(r=>!regular && r.isHoliday && r.kind==='off' && !r.issues.length)) {
+    for (const source of rows.filter(r=>!r.issues.length && (r.typhoonMove || (!regular && r.isHoliday && r.kind==='off')))) {
+      const moving=Boolean(source.typhoonMove);
       let cursor = before(source.date), target;
       while (true) {
         const candidate = byDate.get(cursor);
         if (!candidate) { warn(source,`轉移資料不足：缺 ${cursor} 班表，請補齊本月／前月資料。`); break; }
         if (candidate.inputUncertain) { warn(source,`回溯 ${cursor} 有資料疑義，無法確認最近普通日班。`); break; }
-        if (candidate.kind==='day' && !candidate.isHoliday && !candidate.isTyphoonDate) {
+        if ((regular?candidate.kind==='eightHour':candidate.kind==='day') && !candidate.isHoliday && !candidate.isTyphoonDate && !candidate.isSpecialAttendance) {
           if (occupied.has(cursor)) warn(source,`轉移衝突：最近普通日班 ${cursor} 已被占用，不改選更早日。`);
           else target=candidate;
           break;
@@ -201,10 +206,14 @@ export function calculate({ month, employees, holidays, confirmedMonths = [], in
       const crossMonth = source.date.slice(0,7)!==target.date.slice(0,7);
       const label = `${source.date} → ${target.date}`;
       source.transfer=label;
-      transfers.push({source:source.date,target:target.date,crossMonth});
+      transfers.push({source:source.date,target:target.date,crossMonth,...(moving?{type:'typhoonRest'}:{})});
       if (crossMonth) {
-        warn(source,`跨月歸屬待總務確認：候選 ${label}；取消 1.2H、改計 8／2／1H 尚未入帳。`);
-        source.note='跨月候選，不計入本月';
+        warn(source,`跨月歸屬待總務確認：候選 ${label}；${moving?'天災大班挪移': '取消 1.2H、改計 8／2／1H'} 尚未入帳。`);
+        source.note+=moving?'；大班跨月候選，目標尚未入帳':'；跨月候選，不計入本月';
+      } else if(moving) {
+        target.hours=hoursFor(regular?'restShort':'big');target.transfer=label;
+        target.note=`天災大班挪移：${label}；取消原${regular?'0':'1.2'}H，改列一般休息日${regular?'2／6':'2／6／3'}H；原班別「${target.symbol}」保留`;
+        source.note+=`；大班已挪移至 ${target.date}，列上方一般休息日，天災休息日欄不重複計入`;
       } else {
         target.hours=hoursFor('holiday'); target.transfer=label;
         target.note='國定轉移：取消普通 1.2H，改計 8／2／1H';
