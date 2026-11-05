@@ -1,10 +1,10 @@
-import { KEYS, LABELS, HOUR_RATES, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS, typhoonValues, typhoonDateLabel } from './rules.js?v=9451fc7ccf42';
-import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth, hasRosterLayout } from './excel.js?v=9451fc7ccf42';
-import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=9451fc7ccf42';
-import { sampleRows, templateRows } from './sample.js?v=9451fc7ccf42';
-import {initPrinting,clearPrint} from './print.js?v=9451fc7ccf42';
-import {initCatEffect} from './cat.js?v=9451fc7ccf42';
-import {initLanding} from './landing.js?v=9451fc7ccf42';
+import { KEYS, LABELS, HOUR_RATES, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS, typhoonValues, typhoonDateLabel } from './rules.js?v=9d594214b79c';
+import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth, hasRosterLayout } from './excel.js?v=9d594214b79c';
+import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=9d594214b79c';
+import { sampleRows, templateRows } from './sample.js?v=9d594214b79c';
+import {initPrinting,clearPrint} from './print.js?v=9d594214b79c';
+import {initCatEffect} from './cat.js?v=9d594214b79c';
+import {initLanding} from './landing.js?v=9d594214b79c';
 const $=id=>document.getElementById(id);
 const XLSX=globalThis.XLSX;
 const mobile=window.matchMedia('(max-width:720px)');
@@ -39,7 +39,7 @@ addRateHeaders('summary',HOUR_RATES.map((rate,i)=>[i+1,[rate]]));
 addRateHeaders('daily',[[2,[1.34]],[3,[1.67]],[4,[1.34,1.67,2.67]],[5,[1,1.34,1.67]],[6,[1]]]);
 for(const id of ['typhoon-summary','typhoon-daily']) {
   const start=id==='typhoon-summary'?1:3;
-  addRateHeaders(id,[[start,[1]],[start+1,[2]],[start+2,[1.34,1.67,2.67]],[start+3,[1]]]);
+  addRateHeaders(id,[[start,[1]],[start+1,[2]],[start+2,[1.34,1.67,2.67]],[start+3,[1]],[start+4,[2]]]);
 }
 function message(value,error=false) {$('message').replaceChildren(...(value?[node('p',value,`feedback${error?' error':''}`)]:[]));}
 function invalidate() {clearExportReceipt();$('setup-fold').open=true;$('setup-caption').textContent='選擇或調整班表設定';state.report=null;$('typhoon-section').hidden=true;clearPrint();$('print-summary').disabled=true;$('print-employee').disabled=true;$('export').disabled=true;$('report').hidden=true;$('empty').hidden=false;$('result-caption').textContent='等待完整的班表與日期設定。';message('');}
@@ -180,7 +180,7 @@ function renderReport() {
   $('metric-hours').textContent=fmt(report.totals.total);
   $('metric-hours-label').textContent=report.typhoonDates.length?(report.confirmed?'一般加班時數':'一般暫計時數'):(report.confirmed?'本月總時數':'本月暫計時數');
   $('typhoon-section').hidden=!report.typhoonDates.length;
-  $('summary-scope').textContent=report.typhoonDates.length?'天災出勤、天災休息日出勤與天災例／休全部另列頁面最後，不併本表。':'';
+  $('summary-scope').textContent=report.typhoonDates.length?'天災大班挪移目標列本表一般休息日；來源天災日出勤與例休另列頁面最後，不重複計入。':'';
   if(report.typhoonDates.length)renderTyphoon(report);
   $('metric-issues').textContent=String(issues.length);
   $('metric-check').classList.toggle('pending',issues.length>0);

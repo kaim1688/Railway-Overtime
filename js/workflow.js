@@ -1,6 +1,6 @@
-import {calculate,datesInMonth,previousMonth,validDate,DEFAULT_HOLIDAYS} from './rules.js?v=9451fc7ccf42';
-import {parseRoster,combineEmployees,rosterBlocks} from './excel.js?v=9451fc7ccf42';
-import {CALENDAR_VERSION,CALENDAR_SOURCES} from './holidays.js?v=9451fc7ccf42';
+import {calculate,datesInMonth,previousMonth,validDate,DEFAULT_HOLIDAYS,TYPHOON_DATES} from './rules.js?v=9d594214b79c';
+import {parseRoster,combineEmployees,rosterBlocks} from './excel.js?v=9d594214b79c';
+import {CALENDAR_VERSION,CALENDAR_SOURCES} from './holidays.js?v=9d594214b79c';
 
 export function defaultCalendars() {
   return Object.fromEntries(Object.entries(DEFAULT_HOLIDAYS).map(([month,dates])=>[month,{dates:[...dates],
@@ -22,10 +22,11 @@ export function calculateImportedRoster(XLSX,{current,previous,month,regime,cale
   if(!Object.hasOwn(calendars,month))throw new Error(`${month} 國定日期尚未設定，請展開「查看／修改日期」補上清單，或明確指定本月無國定日。`);
   const prevMonth=previousMonth(month);
   let prior=null;
-  if(previous && parsed.employees.some(p=>p.regime==='threeShift')) {
+  const regularTransfer=parsed.employees.some(p=>p.regime==='regular' && p.records.some(r=>TYPHOON_DATES.includes(r.date) && r.symbol.startsWith('$')));
+  if(previous && (regularTransfer || parsed.employees.some(p=>p.regime==='threeShift'))) {
     if(!previous.sheetName)throw new Error('請選擇前月工作表。');
     const blocks=rosterBlocks(XLSX,previous.wb,previous.sheetName);
-    prior=parseRoster(XLSX,previous.wb,previous.sheetName,prevMonth,blocks[0]?.id || '','threeShift');
+    prior=parseRoster(XLSX,previous.wb,previous.sheetName,prevMonth,regularTransfer?'all':blocks[0]?.id || '',regularTransfer?regime:'threeShift');
   }
   const hasPriorDates=Object.hasOwn(calendars,prevMonth);
   const report=calculate({month,employees:combineEmployees(parsed.employees,prior?.employees || []),

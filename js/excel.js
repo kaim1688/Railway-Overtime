@@ -1,4 +1,4 @@
-import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE, TYPHOON_KEYS, TYPHOON_LABELS, TYPHOON_RULE, typhoonValues, typhoonDateLabel, RATE_RULE } from './rules.js?v=9451fc7ccf42';
+import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE, TYPHOON_KEYS, TYPHOON_LABELS, TYPHOON_RULE, typhoonValues, typhoonDateLabel, RATE_RULE } from './rules.js?v=9d594214b79c';
 
 const text = v => String(v ?? '').trim();
 const NAME = ['姓名','員工姓名','員工'];
@@ -221,7 +221,7 @@ export function reportWorkbook(XLSX, report, metadata={}) {
   append('計算設定',[['項目','內容'],['規則版本',report.ruleVersion],['倍率分類',RATE_RULE],['用途','依提供規則內部試算，非核定薪資；只計時數'],['國定本日',report.holidays.join('、')],['已設定國定日期月份',report.confirmedMonths.join('、')],...(STARRED_ATTENDANCE_DATE.startsWith(report.month)?[['11/28 出勤／例休特例',STARRED_ATTENDANCE_RULE]]:[]),...Object.entries(metadata).map(([k,v])=>[k,String(v)])]);
   if(report.excluded?.length)append('排除人員',[['姓名','資料位置','排除原因'],...report.excluded.map(p=>[p.name,p.source,p.reason])]);
   if(report.typhoonDates?.length) {
-    XLSX.utils.sheet_add_aoa(wb.Sheets['計算設定'],[['颱風出勤日期',report.typhoonDates.map(typhoonDateLabel).join('、')],['颱風出勤規則',TYPHOON_RULE],['總計範圍','天災休息日出勤及其餘天災時數全部另列最後工作表，不併一般或國定；休息日三段合併一欄，順序為1.34／1.67／2.67倍，不重複計入。']],{origin:-1});
+    XLSX.utils.sheet_add_aoa(wb.Sheets['計算設定'],[['颱風出勤日期',report.typhoonDates.map(typhoonDateLabel).join('、')],['颱風出勤規則',TYPHOON_RULE],['總計範圍','天災大班挪移目標列一般休息日，來源日按平日／假日列最後天災表；三班例休併當日0–8H，休息日單欄不重複計入。']],{origin:-1});
     append('颱風假出勤',[['結算年月','姓名','員工編號',...report.typhoonDates.map(d=>`${typhoonDateLabel(d)} 原班別`),...TYPHOON_LABELS,'颱風出勤合計','需核對事項','逐日依據／資料位置'],
       ...report.employees.map(p=>[report.month,p.name,p.id,...report.typhoonDates.map(d=>p.detail.find(r=>r.date===d)?.symbol || '空白'),...typhoonValues(p.typhoonTotals),p.typhoonTotals.total,p.confirmed?'':'需核對／暫計',p.detail.filter(r=>r.isTyphoonDate).map(r=>`${typhoonDateLabel(r.date)}：${typhoonValues(r.typhoonHours).join('；')}H；${r.note}；${r.source || '無來源位置'}${r.issues.length?'；'+r.issues.join('；'):''}`).join('\n')]),
       [report.month,'全體合計','',...report.typhoonDates.map(()=>''),...typhoonValues(report.typhoonTotals),report.typhoonTotals.total,report.confirmed?'':'需核對／暫計','獨立計算，不併入一般總計或國定時數']]);
