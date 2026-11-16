@@ -284,3 +284,134 @@ details>summary{cursor:pointer;font-size:0.928571rem;font-weight:600}#report>det
 #typhoon-summary th:nth-child(4),#typhoon-daily th:nth-child(6){min-width:12rem}
 #typhoon-summary td:nth-child(4),#typhoon-daily td:nth-child(6){white-space:nowrap;font-variant-numeric:tabular-nums}
 #typhoon-summary thead .rate-badge,#typhoon-daily thead .rate-badge{margin-top:5px}
+
+
+/* The landing and workbench share these colors. Print uses its existing sheet styles. */
+@media screen {
+  :root {
+    --station-ground: #faf3e7;
+    --station-ink: #30271d;
+    --station-muted: #635341;
+    --station-paper: #fffaf0;
+    --station-line: #e0cdb4;
+    --station-edge: #ac9074;
+    --station-shadow: #63412418;
+    --station-accent: #9c411f;
+    --station-action: #a3421a;
+    --station-action-hover: #853415;
+    --station-action-edge: #712b13;
+    --station-on-action: #fff9ef;
+    --station-hover: #fae5ce;
+    --station-table-head: #f0e2ca;
+    --station-board: #f5e8d2;
+    --metric-warning: #faf0df;
+    --station-bar: #32534d;
+  }
+  :root[data-theme=dark] {
+    --station-ground: #151e31;
+    --station-ink: #f5ead7;
+    --station-muted: #c9bca8;
+    --station-paper: #202c43;
+    --station-line: #46546e;
+    --station-edge: #7786a1;
+    --station-shadow: #0b111e65;
+    --station-accent: #ffbc86;
+    --station-action: #f7a66d;
+    --station-action-hover: #ffbc89;
+    --station-action-edge: #b66335;
+    --station-on-action: #321d14;
+    --station-hover: #374360;
+    --station-table-head: #303f5b;
+    --station-board: #25344e;
+    --metric-warning: #352c1e;
+    --station-bar: #1f2d45;
+  }
+  :root, :root[data-theme=dark] {
+    color: var(--station-ink);
+    background: var(--station-ground);
+    --muted: var(--station-muted);
+    --line: var(--station-line);
+    --paper: var(--station-paper);
+    --teal: var(--station-accent);
+    --rail-line: var(--station-edge);
+    --rail-signal: var(--station-accent);
+    --metric-paper: var(--station-board);
+    --row-stripe: var(--station-ground);
+    --row-hover: var(--station-hover);
+    --selected: var(--station-hover);
+  }
+  .topbar {
+    --navy: var(--station-bar);
+    border-bottom: 4px solid var(--station-action);
+  }
+  .topbar .brand small { font-size: .78em; font-weight: 600; }
+  .topbar .brand svg { stroke: #ffd2a5; }
+  #workbench .page-title {
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--station-board);
+    border: 1px solid var(--line);
+    border-bottom: 4px solid var(--station-edge);
+    border-radius: 5px;
+  }
+  #workbench :is(.setup, .empty, .metric, .rule-note, .typhoon-section) {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-bottom: 4px solid var(--station-edge);
+    border-radius: 5px;
+  }
+  #workbench :is(.rule-note, .typhoon-section) { padding: 18px clamp(12px, 2vw, 24px); }
+  #workbench .metric-hours { background: var(--station-board); }
+  #workbench .metric-check.pending { background: var(--metric-warning); }
+  #workbench .empty svg { stroke: var(--station-accent); }
+  #workbench .results > .section-head:first-child {
+    padding: 12px 16px;
+    background: var(--station-board);
+    border: 1px solid var(--line);
+    border-bottom: 4px solid var(--station-edge);
+    border-radius: 5px;
+  }
+  #workbench th { background: var(--station-table-head); color: var(--station-ink); }
+  #workbench :is(th, td) { border-bottom-color: var(--line); }
+  #workbench #daily tfoot th, #workbench tfoot td { background: var(--metric-paper); }
+  #workbench :is(.person-link, #summary .total-hours) { color: var(--station-accent); }
+  #workbench .table-scroll { scrollbar-color: var(--station-edge) var(--paper); }
+  #workbench .setup :is(input:not([type=checkbox]), select, textarea),
+  #workbench .employee-actions select {
+    background: var(--station-ground);
+    color: var(--station-ink);
+    border-color: var(--station-edge);
+  }
+  #workbench input::file-selector-button {
+    background: var(--station-table-head);
+    color: var(--station-ink);
+  }
+  #workbench main button:not(.cat-button, .person-link) {
+    background: var(--paper);
+    color: var(--station-ink);
+    border-color: var(--station-edge);
+  }
+  #workbench main button:hover:enabled:not(.cat-button, .person-link) {
+    background: var(--station-hover);
+    border-color: var(--station-accent);
+  }
+  #workbench main :is(button.primary, button#export) {
+    background: var(--station-action);
+    color: var(--station-on-action);
+    border-color: var(--station-action);
+    border-bottom: 3px solid var(--station-action-edge);
+  }
+  #workbench main :is(button.primary, button#export):hover:enabled {
+    color: var(--station-on-action);
+    background: var(--station-action-hover);
+    border-color: var(--station-action-edge);
+  }
+  #workbench :focus-visible { outline-color: var(--station-accent); }
+  #workbench .topbar :focus-visible { outline-color: #ffd2a5; }
+  #workbench ::selection { background: var(--station-action); color: var(--station-on-action); }
+}
+@media screen and (max-width: 720px) {
+  #workbench .page-title { padding: 12px 14px; }
+  #workbench .results > .section-head:first-child { padding: 12px; }
+  #workbench #daily tfoot th { background: none; }
+}

@@ -114,11 +114,6 @@ export function initLanding({importFile, loadSample, hasReport}) {
   new MutationObserver(syncAppearance).observe(appearance,{attributes:true,attributeFilter:['data-theme','data-motion']});
   document.addEventListener('visibilitychange',pauseMotion);
   syncAppearance();
-  // Enable transitions only after the shadow stylesheet's initial theme has painted.
-  const sceneStyles = root.querySelector('link[rel="stylesheet"]');
-  const enableTransitions = () => requestAnimationFrame(()=>requestAnimationFrame(()=>page.classList.add('scene-ready')));
-  if (sceneStyles.sheet) enableTransitions();
-  else sceneStyles.addEventListener('load',enableTransitions,{once:true});
   $('theme').addEventListener('click',()=>document.getElementById('theme-toggle').click());
   $('motion').addEventListener('click',()=>document.getElementById('motion-toggle').click());
 
