@@ -14,7 +14,6 @@
   --error: #963c26;
   --error-bg: #fff0df;
   --scene-art: url("assets/voxel-station-day.webp");
-  --scene-blink: url("assets/voxel-station-blink-day.webp");
   --counter: #c29365;
   --counter-edge: #b18b67;
   --counter-face: #eee1c5;
@@ -28,7 +27,6 @@
   --error: #ffc4a6;
   --error-bg: #4b302d;
   --scene-art: url("assets/voxel-station-night.webp");
-  --scene-blink: url("assets/voxel-station-blink-night.webp");
   --counter: #8f8061;
   --counter-edge: #76604b;
   --counter-face: #293b40;
@@ -159,30 +157,83 @@ header {
   background-size: cover;
 }
 
-.scene-blink {
+
+.scene-image::after {
+  content: "";
   position: absolute;
-  inset: 47.0703125% auto auto 40.5598958%;
-  width: 17.1875%;
-  height: 10.25390625%;
-  opacity: 0;
+  inset: 0;
   pointer-events: none;
-  background-size: 100% 200%;
-  background-repeat: no-repeat;
-}
-/* The transparent sprite has half-closed eyes above closed eyes. */
-@media (prefers-reduced-motion: no-preference) {
-  .landing-page:not(.no-motion) .scene-blink {
-    background-image: var(--scene-blink);
-    animation: station-blink 4s steps(1, end) infinite;
-  }
-}
-@keyframes station-blink {
-  0%, 100% { opacity: 0; background-position: center top; }
-  94%, 98% { opacity: 1; background-position: center top; }
-  95.5% { opacity: 1; background-position: center bottom; }
+  background:
+    linear-gradient(90deg, var(--station-ground), transparent 8%, transparent 89%, var(--station-ground)),
+    linear-gradient(var(--station-ground), transparent 6%, transparent 85%, var(--station-ground));
 }
 
-.receiving-tray { position: absolute; left: 47%; top: 75%; pointer-events: none; }
+.scene-ambience {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+}
+.scene-ambience { inset: 0; }
+.sakura-petal {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transform-origin: top left;
+  color: #ffd3de;
+}
+.sakura-petal::before {
+  content: "";
+  display: block;
+  width: clamp(5px, 1vw, 11px);
+  aspect-ratio: 1.35;
+  border-radius: 75% 25% 70% 35%;
+  background: currentColor;
+  transform: rotate(-28deg);
+}
+.sakura-petal:nth-child(1) { left: 20%; top: 10%; --fall: 15s; --delay: -2s; }
+.sakura-petal:nth-child(2) { left: 50%; top: 19%; --fall: 19s; --delay: -14s; color: #f4a4bb; }
+.sakura-petal:nth-child(3) { left: 67%; top: 5%; --fall: 22s; --delay: -8s; }
+.sakura-petal:nth-child(4) { left: 76%; top: 13%; --fall: 17s; --delay: -14s; color: #f4a4bb; }
+
+
+.scene-fireflies, :host([data-theme="dark"]) .sakura-petal { display: none; }
+:host([data-theme="dark"]) .scene-fireflies { display: contents; }
+.scene-fireflies span {
+  position: absolute;
+  width: clamp(10px, 1.65vw, 19px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: 0;
+  background: radial-gradient(circle, #fff7c9 0 9%, #ffe395b0 19%, #ffd26b30 43%, transparent 72%);
+}
+.scene-fireflies span:nth-child(1) { left: 18%; top: 77%; --drift: 7s; --delay: -1s; }
+.scene-fireflies span:nth-child(2) { left: 48%; top: 82%; --drift: 9s; --delay: -5s; }
+.scene-fireflies span:nth-child(3) { left: 62%; top: 68%; --drift: 8s; --delay: -4s; }
+.scene-fireflies span:nth-child(4) { left: 72%; top: 77%; --drift: 11s; --delay: -3s; }
+.scene-fireflies span:nth-child(5) { left: 81%; top: 69%; --drift: 10s; --delay: -7s; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .landing-page:not(.no-motion) .scene-ambience { opacity: 1; }
+  .landing-page:not(.no-motion) .sakura-petal { animation: sakura-fall var(--fall) var(--delay) linear infinite; }
+  .landing-page:not(.no-motion) .scene-fireflies span {
+    animation: firefly-drift var(--drift) var(--delay) ease-in-out infinite;
+  }
+}
+@keyframes sakura-fall {
+  0%, 100% { opacity: 0; }
+  0% { transform: translateY(-10%) rotate(-12deg); }
+  20%, 72% { opacity: .85; }
+  50% { transform: translate(-6%, 35%) rotate(17deg); }
+  100% { transform: translate(6%, 83%) rotate(38deg); }
+}
+@keyframes firefly-drift {
+  0%, 100% { opacity: 0; transform: translate(0, 0); }
+  35% { opacity: .82; transform: translate(70%, -70%); }
+  63% { opacity: .35; transform: translate(115%, -135%); }
+  80% { opacity: .62; transform: translate(170%, -95%); }
+}
+
+.receiving-tray { position: absolute; left: 44%; top: 74%; pointer-events: none; }
 .station-console {
   min-width: 0;
   display: grid;
