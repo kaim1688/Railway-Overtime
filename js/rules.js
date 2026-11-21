@@ -1,4 +1,4 @@
-export const RULE_VERSION = '使用者規則草稿 v1.13（2026-11-05）/ MVP 0.4.8';
+export const RULE_VERSION = '使用者規則草稿 v1.14（2026-11-21）/ MVP 0.5.0';
 export const TYPHOON_DATES = ['2026-10-23','2026-10-24'];
 export const TYPHOON_KEYS = ['typhoon08','typhoonOver','typhoonRest02','typhoonRest38','typhoonRest912','typhoonHoliday08','typhoonHolidayOver'];
 export const TYPHOON_LABELS = ['天災出勤0–8H（1倍）','天災出勤9H以後（2倍）','天災休息日出勤2／6／3H（1.34／1.67／2.67倍）','天災出勤（假日）0–8H（1倍）','天災出勤（假日）9H以後（2倍）'];
@@ -13,7 +13,7 @@ export function sumTyphoonHours(items) {
 }
 export const STARRED_ATTENDANCE_DATE = '2026-11-28';
 export const STARRED_ATTENDANCE_RULE = '2026/11/28 使用者確認：三班制 *日／*夜、常日班帶 * 替日班計國定出勤 8／2／1H；帶 * 的已知 8 小時班計國定出勤 8H，不另加普通延時，三班制例／休計國定例／休8H；常日例休及其他未出勤0H，不觸發公休轉移。';
-export { DEFAULT_HOLIDAYS } from './holidays.js?v=09b9a5450a8b';
+export { DEFAULT_HOLIDAYS } from './holidays.js?v=cce44c5f5182';
 export const REGIMES = {threeShift:'三班制', regular:'常日班替班'};
 export const RELIEF_SHIFTS = ['日轍','日剪','日售','日運','日調','日號','日售領','夜轍','夜剪','夜售','夜運','夜調'];
 export const EIGHT_HOUR_SHIFTS = ['常日售','晚常剪','晚常售','A售','B售','晚A售','早B售','A剪','B剪','晚A剪','早B剪','S','晚S','晚AS','早BS'];
@@ -24,7 +24,6 @@ function regularKind(symbol) {
   if(RELIEF_SHIFTS.includes(base))return starred?'holidayLong':'relief';
   if(EIGHT_HOUR_SHIFTS.includes(base))return starred?'holidayShort':'eightHour';
   if(['例','例假','休','周休','週休'].includes(symbol))return 'rest';
-  if(symbol==='喪假')return 'noWork';
   if(Object.hasOwn(HOLIDAY_NAMES,symbol))return 'holidayOff';
   const shared=Object.hasOwn(SYMBOLS,symbol)?SYMBOLS[symbol]:undefined;
   return ['noWork','leave','off'].includes(shared)?shared:undefined;
@@ -33,7 +32,7 @@ export const KEYS = ['ordinary', 'ordinary34', 'rest02', 'rest38', 'rest912', 'h
 export const LABELS = ['延時工資 0–2H', '延時工資 3–4H', '休息日 0–2H', '休息日 3–8H', '休息日 9–12H', '國定出勤 0–8H', '國定 9–10H', '國定 11–12H', '國定例／休 0–8H'];
 export const HOUR_RATES = [1.34,1.67,1.34,1.67,2.67,1,1.34,1.67,1];
 export const RATE_RULE = '倍率依使用者提供之總務說明，僅標示分類、不計金額：'+LABELS.map((label,i)=>`${label}：${HOUR_RATES[i]}倍`).join('；');
-export const SYMBOLS = Object.freeze({ '日':'day', '夜':'night', '$日':'big', '$夜':'big', '*日':'holiday', '*夜':'holiday', '例':'rest', '休':'rest', '公休':'off', '特休':'leave', '家照':'noWork', '家照假':'noWork', '家庭照顧假':'noWork', '公假':'noWork', '身調假':'noWork', '身心調適假':'noWork', '選舉假':'noWork', '颱風假':'noWork', '生理假':'noWork', '補休':'noWork', '國慶日':'holidayOff', '行憲日':'holidayOff', '行憲紀念日':'holidayOff' });
+export const SYMBOLS = Object.freeze({ '日':'day', '夜':'night', '$日':'big', '$夜':'big', '*日':'holiday', '*夜':'holiday', '例':'rest', '休':'rest', '公休':'off', '特休':'leave', '家照':'noWork', '家照假':'noWork', '家庭照顧假':'noWork', '公假':'noWork', '喪假':'noWork', '身調假':'noWork', '身心調適假':'noWork', '選舉假':'noWork', '颱風假':'noWork', '生理假':'noWork', '補休':'noWork', '國慶日':'holidayOff', '行憲日':'holidayOff', '行憲紀念日':'holidayOff' });
 const zero = () => Object.fromEntries(KEYS.map(k => [k, 0]));
 const round = n => Math.round(n * 10) / 10;
 export function hoursFor(type) {
