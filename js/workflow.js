@@ -1,6 +1,6 @@
-import {calculate,datesInMonth,previousMonth,validDate,DEFAULT_HOLIDAYS,TYPHOON_DATES} from './rules.js?v=cce44c5f5182';
-import {parseRoster,combineEmployees,rosterBlocks} from './excel.js?v=cce44c5f5182';
-import {CALENDAR_VERSION,CALENDAR_SOURCES} from './holidays.js?v=cce44c5f5182';
+import {calculate,datesInMonth,previousMonth,validDate,DEFAULT_HOLIDAYS,TYPHOON_DATES} from './rules.js?v=ffd1c6318881';
+import {parseRoster,combineEmployees,rosterBlocks} from './excel.js?v=ffd1c6318881';
+import {CALENDAR_VERSION,CALENDAR_SOURCES} from './holidays.js?v=ffd1c6318881';
 
 export function defaultCalendars() {
   return Object.fromEntries(Object.entries(DEFAULT_HOLIDAYS).map(([month,dates])=>[month,{dates:[...dates],
@@ -26,7 +26,7 @@ export function calculateImportedRoster(XLSX,{current,previous,month,regime,cale
   if(previous && (regularTransfer || parsed.employees.some(p=>p.regime==='threeShift'))) {
     if(!previous.sheetName)throw new Error('請選擇前月工作表。');
     const blocks=rosterBlocks(XLSX,previous.wb,previous.sheetName);
-    prior=parseRoster(XLSX,previous.wb,previous.sheetName,prevMonth,regularTransfer?'all':blocks[0]?.id || '',regularTransfer?regime:'threeShift');
+    prior=parseRoster(XLSX,previous.wb,previous.sheetName,prevMonth,regularTransfer?'all':blocks.find(b=>b.regime==='threeShift')?.id || '',regularTransfer?regime:'threeShift');
   }
   const hasPriorDates=Object.hasOwn(calendars,prevMonth);
   const report=calculate({month,employees:combineEmployees(parsed.employees,prior?.employees || []),
