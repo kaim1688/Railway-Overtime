@@ -1,10 +1,11 @@
-import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE, TYPHOON_KEYS, TYPHOON_LABELS, TYPHOON_RULE, typhoonValues, typhoonDateLabel, RATE_RULE } from './rules.js?v=cce44c5f5182';
+import { datesInMonth, validDate, KEYS, LABELS, REGIMES, STARRED_ATTENDANCE_DATE, STARRED_ATTENDANCE_RULE, TYPHOON_KEYS, TYPHOON_LABELS, TYPHOON_RULE, typhoonValues, typhoonDateLabel, RATE_RULE } from './rules.js?v=ffd1c6318881';
 
 const text = v => String(v ?? '').trim();
 const NAME = ['姓名','員工姓名','員工'];
 const ID = ['員工編號','工號','員編'];
 const DATE = ['日期','出勤日期'];
 const SHIFT = ['班別','班次'];
+const ANNUAL_ALIASES = {'休息日':'休','家庭照顧':'家庭照顧假','特':'特休','喪':'喪假'};
 export function readWorkbook(XLSX, data) {
   if (data.byteLength > 20 * 1024 * 1024) throw new Error('檔案超過 20MB，請先另存所需班表工作表。');
   const bytes = new Uint8Array(data);
@@ -36,7 +37,32 @@ function sheetRows(XLSX, workbook, sheetName) {
   if (range.e.r>10000 || range.e.c>366) throw new Error('工作表超過 10,001 列或 367 欄，請另存班表範圍後再匯入。');
   return {ws,rows:XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null,range:0,blankrows:true})};
 }
+function findAnnualRosterBlocks(rows,ws) {
+  const compact = value => text(value).replace(/\s+/g,'');
+  const upper=rows.findIndex(row=>compact(row[0])==='月日' && text(row[2]).includes('AB班值勤表'));
+  if(upper<0)return null;
+  const lower=rows.findIndex((row,r)=>r>upper && compact(row[0])==='月日' && compact(rows[r+3]?.[0])==='三班制');
+  const merges=ws['!merges'] || [];
+  const legend=merges.find(({s,e})=>s.r>=upper+6 && s.r<lower && s.c===0 && e.c>=3 && /\d{1,2}:\d{2}\s*[~～–-]\s*\d{1,2}:\d{2}/.test(text(rows[s.r][0])));
+  const group=merges.find(({s,e})=>s.r===lower+3 && s.c===0 && e.c===0 && e.r>s.r);
+  if(lower<0 || !legend || !group || group.e.r>=rows.length)throw new Error('竹南新版班表缺少 AB 班圖例或三班制分區，請核對工作表。');
+  if(compact(rows[upper+3][0])!=='站長' || !['','總務'].includes(compact(rows[upper+4][0])) || compact(rows[upper+5][0])) {
+    throw new Error('竹南新版班表的站長／總務列與原版不符，請核對排除範圍。');
+  }
+  return [[upper,legend.s.r-1,'regular','AB 班'],[lower,group.e.r,'threeShift','三班制']].map(([titleRow,endRow,regime,label])=>{
+    const r=titleRow+2, nameCol=1;
+    const title=text(rows[titleRow][2]).match(/(\d{3,4})年\s*(\d{1,2})月/);
+    if(!title || compact(rows[r]?.[0])!=='姓名')throw new Error(`${label}缺少年月或姓名表頭，請核對。`);
+    const month=`${Number(title[1])+(title[1].length===3?1911:0)}-${title[2].padStart(2,'0')}`;
+    const columns=rows[r].map((v,c)=>({c,day:text(v)})).filter(x=>x.c>nameCol && /^\d{1,2}$/.test(x.day))
+      .map(({c,day})=>({c,date:`${month}-${day.padStart(2,'0')}`}));
+    return {id:String(r),layout:'wide',r,titleRow,startRow:r+1,endRow,nameCol,idCol:-1,month,columns,regime,annual:true,
+      label:`${label}｜${month}｜第 ${r+2}–${endRow+1} 列`,blockCount:2};
+  });
+}
 function findRosterBlocks(rows,ws) {
+  const annual=findAnnualRosterBlocks(rows,ws);
+  if(annual)return annual;
   const blocks=[];
   for (let r=2;r<rows.length;r++) {
     const nameCol=rows[r-1].findIndex(v=>text(v)==='星期');
@@ -54,7 +80,7 @@ function findRosterBlocks(rows,ws) {
     const footer=(ws['!merges'] || []).filter(m=>m.s.r>block.r && m.s.r<=endRow && m.s.c<=block.nameCol && m.e.c>=block.columns[1].c && /\d{1,2}:\d{2}\s*[~～–-]\s*\d{1,2}:\d{2}|班別.*圖例/.test(text(rows[m.s.r][m.s.c]))).sort((a,b)=>a.s.r-b.s.r)[0];
     if(footer)endRow=footer.s.r-1;
     while(endRow>block.r && !rows[endRow].some(v=>text(v)))endRow--;
-    return {...block,endRow,label:`第 ${i+1} 區｜${block.month}｜第 ${block.startRow+1}–${endRow+1} 列`,blockCount:blocks.length};
+    return {...block,endRow,regime:i===1?'regular':'threeShift',label:`第 ${i+1} 區｜${block.month}｜第 ${block.startRow+1}–${endRow+1} 列`,blockCount:blocks.length};
   });
 }
 export function rosterBlocks(XLSX,workbook,sheetName) {
@@ -106,7 +132,8 @@ export function parseSheet(XLSX, workbook, sheetName, month, blockId='', {regime
   const issues=[];
   const date1904=!!workbook.Workbook?.WBProps?.date1904;
   const candidates=nameHeaders(XLSX,rows,month,date1904);
-  const blocks=candidates.length ? [] : findRosterBlocks(rows,ws);
+  const detected=findRosterBlocks(rows,ws);
+  const blocks=candidates.length && !detected[0]?.annual ? [] : detected;
   if(blocks.length && !blockId)throw new Error('請選擇班表區段，並確認適用班制。');
   const schema=blocks.length ? blocks.find(b=>b.id===blockId) : candidates[0];
   if (blocks.length && !schema)throw new Error('所選班表區段無效，請重新選擇。');
@@ -142,10 +169,11 @@ export function parseSheet(XLSX, workbook, sheetName, month, blockId='', {regime
     }
   }
   const people=new Map(), excluded=[];
+  const regularSection=schema.annual?'上方 AB 班':'下方';
   if(excludeLeading) {
-    if(regime!=='regular' || schema.layout!=='wide' || schema.endRow-schema.r<=excludeLeading)throw new Error('下方區段不足以辨識前三位與替班人員，請核對版型。');
+    if(regime!=='regular' || schema.layout!=='wide' || schema.endRow-schema.r<=excludeLeading)throw new Error(`${regularSection}區段不足以辨識前三位與替班人員，請核對版型。`);
     const leading=rows.slice(schema.r+1,schema.r+1+excludeLeading).map(r=>text(r[schema.nameCol]));
-    if(leading.some(n=>!n || n==='段替班') || new Set(leading).size!==excludeLeading)throw new Error('下方前三位姓名缺漏或重複，無法確認站長／總務排除範圍。');
+    if(leading.some(n=>!n || n==='段替班') || new Set(leading).size!==excludeLeading)throw new Error(`${regularSection}前三位姓名缺漏或重複，無法確認站長／總務排除範圍。`);
   }
   let externalSupport = false;
   for (let r=schema.r+1;r<=(schema.endRow ?? rows.length-1);r++) {
@@ -158,8 +186,8 @@ export function parseSheet(XLSX, workbook, sheetName, month, blockId='', {regime
     }
     if (!name || typeof rawName!=='string' || NAME.includes(name)) { issues.push(`第 ${r+1} 列姓名缺漏／不明，該列未納入，請核對是否為員工。`); continue; }
     if (/^(合計|總計|備註|說明)/.test(name)) { issues.push(`第 ${r+1} 列「${name}」可能是備註或合計，未納入，請人工核對。`); continue; }
-    if(r<=schema.r+excludeLeading || (regime==='regular' && name==='段替班')) {
-      excluded.push({name,source:ref(r,schema.nameCol),reason:name==='段替班'?'段替班：外部支援':r===schema.r+1?'下方第1位：站長':'下方第2–3位：總務'});
+    if(r<=schema.r+excludeLeading) {
+      excluded.push({name,source:ref(r,schema.nameCol),reason:`${regularSection}${r===schema.r+1?'第1位：站長':'第2–3位：總務'}`});
       continue;
     }
     const id=schema.idCol>=0 ? text(safe(r,schema.idCol)) : '';
@@ -168,7 +196,16 @@ export function parseSheet(XLSX, workbook, sheetName, month, blockId='', {regime
     const p=people.get(key);
     if (p.name!==name) issues.push(`員工編號 ${id} 對應不同姓名，請核對。`);
     if (schema.layout==='wide' && p.records.length) issues.push(`員工「${name}」有重複橫排資料；同名者請補上不同員工編號。`);
-    if (schema.layout==='wide') for (const col of schema.columns) p.records.push({date:col.date,symbol:text(safe(r,col.c)),source:ref(r,col.c)});
+    if (schema.layout==='wide') for (const col of schema.columns) {
+      const symbol=text(safe(r,col.c));
+      const record={date:col.date,symbol,source:ref(r,col.c)};
+      if(schema.annual) {
+        const token=symbol.replace(/[ \t]*\r?\n[ \t]*/g,'');
+        const shiftCode=Object.hasOwn(ANNUAL_ALIASES,token)?ANNUAL_ALIASES[token]:token;
+        if(shiftCode!==symbol)record.shiftCode=shiftCode;
+      }
+      p.records.push(record);
+    }
     else {
       const date=dateValue(safe(r,schema.dateCol),month,XLSX,date1904);
       if (!date || !validDate(date) || !date.startsWith(month)) { issues.push(`${ref(r,schema.dateCol)} 日期不明或非 ${month}，該列未納入。`); continue; }
@@ -180,14 +217,13 @@ export function parseSheet(XLSX, workbook, sheetName, month, blockId='', {regime
     selection:schema.label || '全工作表',blockCount:blocks.length,
     dateCount:schema.columns?.length ?? new Set([...people.values()].flatMap(p=>p.records.map(r=>r.date))).size};
 }
-// The supplied two-block layout fixes upper/lower roles; other layouts need explicit selection.
 export function parseRoster(XLSX,workbook,sheetName,month,selection='',regime='threeShift') {
   const blocks=rosterBlocks(XLSX,workbook,sheetName);
   if(!blocks.length)return parseSheet(XLSX,workbook,sheetName,month,'',{regime});
-  if(blocks.length>2)throw new Error('目前分區自動班制對應只支援上方三班制及下方常日班兩區；請另存所需人員為姓名表頭版型後選擇班制。');
+  if(blocks.length>2)throw new Error('目前自動判斷班制只支援已辨識的兩區班表；請另存所需人員為姓名表頭版型後選擇班制。');
   const chosen=selection==='all'?blocks:blocks.filter(b=>b.id===selection);
   if(!chosen.length)throw new Error('請選擇班表區段。');
-  const parts=chosen.map(b=>parseSheet(XLSX,workbook,sheetName,month,b.id,{regime:b===blocks[1]?'regular':'threeShift',excludeLeading:b===blocks[1]?3:0}));
+  const parts=chosen.map(b=>parseSheet(XLSX,workbook,sheetName,month,b.id,{regime:b.regime,excludeLeading:b.regime==='regular'?3:0}));
   const employees=parts.flatMap(p=>p.employees),issues=parts.flatMap(p=>p.issues);
   const seen=new Set();
   for(const p of employees) {

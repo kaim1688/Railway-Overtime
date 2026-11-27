@@ -1,4 +1,4 @@
-export const RULE_VERSION = '使用者規則草稿 v1.14（2026-11-21）/ MVP 0.5.0';
+export const RULE_VERSION = '使用者規則草稿 v1.14（2026-11-21）/ MVP 0.5.2';
 export const TYPHOON_DATES = ['2026-10-23','2026-10-24'];
 export const TYPHOON_KEYS = ['typhoon08','typhoonOver','typhoonRest02','typhoonRest38','typhoonRest912','typhoonHoliday08','typhoonHolidayOver'];
 export const TYPHOON_LABELS = ['天災出勤0–8H（1倍）','天災出勤9H以後（2倍）','天災休息日出勤2／6／3H（1.34／1.67／2.67倍）','天災出勤（假日）0–8H（1倍）','天災出勤（假日）9H以後（2倍）'];
@@ -13,7 +13,7 @@ export function sumTyphoonHours(items) {
 }
 export const STARRED_ATTENDANCE_DATE = '2026-11-28';
 export const STARRED_ATTENDANCE_RULE = '2026/11/28 使用者確認：三班制 *日／*夜、常日班帶 * 替日班計國定出勤 8／2／1H；帶 * 的已知 8 小時班計國定出勤 8H，不另加普通延時，三班制例／休計國定例／休8H；常日例休及其他未出勤0H，不觸發公休轉移。';
-export { DEFAULT_HOLIDAYS } from './holidays.js?v=cce44c5f5182';
+export { DEFAULT_HOLIDAYS } from './holidays.js?v=ffd1c6318881';
 export const REGIMES = {threeShift:'三班制', regular:'常日班替班'};
 export const RELIEF_SHIFTS = ['日轍','日剪','日售','日運','日調','日號','日售領','夜轍','夜剪','夜售','夜運','夜調'];
 export const EIGHT_HOUR_SHIFTS = ['常日售','晚常剪','晚常售','A售','B售','晚A售','早B售','A剪','B剪','晚A剪','早B剪','S','晚S','晚AS','早BS'];
@@ -95,8 +95,9 @@ export function calculate({ month, employees, holidays, confirmedMonths = [], in
     for (const date of days) if (!byDate.has(date)) byDate.set(date,{date,symbol:'',hours:zero(),typhoonHours:zeroTyphoon(),issues:[],note:'',transfer:''});
     const rows = [...byDate.values()].sort((a,b)=>a.date.localeCompare(b.date));
     for (const row of rows) {
-      row.kind = regular ? regularKind(row.symbol) : (Object.hasOwn(SYMBOLS,row.symbol) ? SYMBOLS[row.symbol] : undefined);
-      const compLeave = /^補休(?:\((\d{1,2})\/(\d{1,2})\)|（(\d{1,2})\/(\d{1,2})）)$/.exec(row.symbol);
+      const code=row.shiftCode ?? row.symbol;
+      row.kind = regular ? regularKind(code) : (Object.hasOwn(SYMBOLS,code) ? SYMBOLS[code] : undefined);
+      const compLeave = /^補休(?:\((\d{1,2})\/(\d{1,2})\)|（(\d{1,2})\/(\d{1,2})）)$/.exec(code);
       if (compLeave && validDate(`2000-${(compLeave[1] || compLeave[3]).padStart(2,'0')}-${(compLeave[2] || compLeave[4]).padStart(2,'0')}`)) row.kind='noWork';
       if (regular && compLeave) {
         const target = `${row.date.slice(0,4)}-${(compLeave[1] || compLeave[3]).padStart(2,'0')}-${(compLeave[2] || compLeave[4]).padStart(2,'0')}`;
@@ -105,12 +106,13 @@ export function calculate({ month, employees, holidays, confirmedMonths = [], in
       row.isHoliday = holidaySet.has(row.date) && row.date!==STARRED_ATTENDANCE_DATE;
       row.isTyphoonDate = TYPHOON_DATES.includes(row.date);
       row.isTyphoonHoliday = row.date==='2026-10-24';
-      row.isSpecialAttendance = row.date===STARRED_ATTENDANCE_DATE && (row.symbol.startsWith('*') || (!regular && row.kind==='rest'));
+      row.isSpecialAttendance = row.date===STARRED_ATTENDANCE_DATE && (code.startsWith('*') || (!regular && row.kind==='rest'));
     }
     for (const row of rows) {
       if (row.duplicate) continue;
       if (!row.kind) { warn(row,row.symbol ? `無法辨識班別「${row.symbol}」。` : '班別空白／缺少當日資料。'); continue; }
       if (!reviewed.has(row.date.slice(0,7))) { warn(row,'該月國定本日清單未確認。'); continue; }
+      const code=row.shiftCode ?? row.symbol;
       if(row.isTyphoonDate) {
         if(row.isHoliday)warn(row,'颱風日期與國定日期重疊，請核對設定，不重複計入。');
         else if(!regular && row.kind==='rest') {row.typhoonHours[row.isTyphoonHoliday?'typhoonHoliday08':'typhoon08']=8;row.note='天災例／休：8H（1倍），依日期併入平日或假日0–8H；9H以後0H，另列末表';}
@@ -134,7 +136,7 @@ export function calculate({ month, employees, holidays, confirmedMonths = [], in
       if(row.isSpecialAttendance) {
         if(!regular && row.kind==='rest') {row.hours=hoursFor('holidayRest');row.note='11/28 三班制例／休特例（使用者確認）：國定例／休 8H';}
         else if(regular && rows.some(r=>r.compensationTarget===row.date))warn(row,'11/28 星號出勤另有補休註記，請人工核對，不自行抵銷。');
-        else if((!regular && row.kind==='holiday') || (regular && row.kind==='holidayLong' && row.symbol.startsWith('*日'))) {
+        else if((!regular && row.kind==='holiday') || (regular && row.kind==='holidayLong' && code.startsWith('*日'))) {
           row.hours=hoursFor('holiday');row.note='11/28 星號出勤特例（使用者確認）：國定出勤 8／2／1H，不另加普通延時';
         } else if(regular && row.kind==='holidayShort') {
           row.hours=hoursFor('holidayShort');row.note='11/28 星號出勤特例（使用者確認）：8 小時班計國定出勤 8H';
@@ -144,7 +146,7 @@ export function calculate({ month, employees, holidays, confirmedMonths = [], in
       if(regular) {
         if(['noWork','leave','rest','off'].includes(row.kind))row.note=row.compensationNote || '常日班未出勤：加班 0H';
         else if(row.kind==='holidayOff') {
-          if(row.isHoliday && row.date.slice(5)===HOLIDAY_NAMES[row.symbol])row.note=`${row.symbol}放假：加班 0H`;
+          if(row.isHoliday && row.date.slice(5)===HOLIDAY_NAMES[code])row.note=`${code}放假：加班 0H`;
           else warn(row,'節日名稱與實際國定本日不符，請核對。');
         } else if(row.isHoliday) {
           const leaves = rows.filter(r=>r.compensationTarget===row.date);
@@ -168,7 +170,7 @@ export function calculate({ month, employees, holidays, confirmedMonths = [], in
       }
       if (row.kind==='noWork') row.note='未出勤：加班 0H（使用者確認）';
       else if (row.kind==='holidayOff') {
-        if (row.isHoliday && row.date.slice(5)===HOLIDAY_NAMES[row.symbol]) row.note=`${row.symbol}未出勤：加班 0H（使用者確認）`;
+        if (row.isHoliday && row.date.slice(5)===HOLIDAY_NAMES[code]) row.note=`${code}未出勤：加班 0H（使用者確認）`;
         else warn(row,`${row.symbol}標記與國定本日清單不符，請核對日期／班別。`);
       } else if (row.isHoliday) {
         if (row.kind === 'holiday') { row.hours = hoursFor('holiday'); row.note='國定本日出勤 8／2／1H'; }

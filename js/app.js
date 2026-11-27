@@ -1,10 +1,10 @@
-import { KEYS, LABELS, HOUR_RATES, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS, typhoonValues, typhoonDateLabel } from './rules.js?v=cce44c5f5182';
-import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth, hasRosterLayout } from './excel.js?v=cce44c5f5182';
-import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=cce44c5f5182';
-import { sampleRows, templateRows } from './sample.js?v=cce44c5f5182';
-import {initPrinting,clearPrint} from './print.js?v=cce44c5f5182';
-import {initCatEffect} from './cat.js?v=cce44c5f5182';
-import {initLanding} from './landing.js?v=cce44c5f5182';
+import { KEYS, LABELS, HOUR_RATES, REGIMES, datesInMonth, previousMonth, STARRED_ATTENDANCE_DATE, TYPHOON_KEYS, typhoonValues, typhoonDateLabel } from './rules.js?v=ffd1c6318881';
+import { readWorkbook, reportWorkbook, rosterBlocks, rosterMonth, hasRosterLayout } from './excel.js?v=ffd1c6318881';
+import { defaultCalendars, parseHolidayInput, calculateImportedRoster } from './workflow.js?v=ffd1c6318881';
+import { sampleRows, templateRows } from './sample.js?v=ffd1c6318881';
+import {initPrinting,clearPrint} from './print.js?v=ffd1c6318881';
+import {initCatEffect} from './cat.js?v=ffd1c6318881';
+import {initLanding} from './landing.js?v=ffd1c6318881';
 const $=id=>document.getElementById(id);
 const XLSX=globalThis.XLSX;
 const mobile=window.matchMedia('(max-width:720px)');
@@ -140,7 +140,8 @@ function run() {
       '本月計算範圍':current.selection,'前月計算範圍':previous?.selection || '未使用',
       '適用班制':[...new Set(report.employees.map(p=>REGIMES[p.regime]))].join('、'),
       '排除人員':current.excluded.map(p=>`${p.name}（${p.source}，${p.reason}）`).join('；') || '無',
-      '前三位排除依據':current.excluded.some(p=>p.reason.startsWith('下方'))?'原版下方第1位站長、第2–3位總務；依既定位置排除':'未套用位置排除'};
+      '前三位排除依據':current.excluded.some(p=>p.reason.startsWith('上方 AB 班'))?'新版 AB 班第1位站長、第2–3位總務；依既定位置排除':
+        current.excluded.some(p=>p.reason.startsWith('下方'))?'原版下方第1位站長、第2–3位總務；依既定位置排除':'未套用位置排除'};
     $('import-info').textContent=`${state.current.name}｜${current.sheetName}｜表頭第 ${current.headerRows?.join('、') || current.headerRow} 列｜${current.dateCount} 個日期｜${current.selection}`;
     renderReport();
     $('setup-caption').textContent=`${report.month} · ${report.employees.length} 人 · 點開更換班表`;
